@@ -1,7 +1,7 @@
 import './styles/main.css';
 import { SITE_CONFIG } from './config/siteConfig';
 import { mountHeroGlassSphere } from './three/HeroGlassSphere';
-import { mountDachMap } from './three/DachMap3D';
+import { mountContactLogo3D } from './three/ContactLogo3D';
 import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
@@ -281,23 +281,9 @@ function buildAppHTML(): string {
             <p class="contact-caption">${cfg.contact.caption}</p>
           </div>
 
-          <div class="contact-map-panel">
-            <div class="map-top-eyebrow">${cfg.contact.mapEyebrow}</div>
-            <div class="map-canvas-wrap">
-              <canvas id="dach-map-canvas" class="dach-map-canvas" aria-label="Interactive DACH local search map"></canvas>
-              <div id="dach-map-readout" class="dach-map-readout"></div>
-            </div>
-            <div class="map-hint">${cfg.contact.mapHint}</div>
-            <div class="map-city-pills" role="group" aria-label="Select a city on the map">
-              <span class="try-label">TRY</span>
-              ${cfg.contact.cities
-                .map(
-                  (c) => `
-                <button type="button" class="city-pill-btn" data-city="${c.id}" aria-pressed="false">${c.name}</button>
-              `
-                )
-                .join('')}
-            </div>
+          <div class="contact-logo-panel">
+            <div class="contact-logo-stage" id="contact-logo-3d-host"></div>
+            <div class="map-hint">DRAG TO ROTATE &middot; DEPLOY 3D</div>
           </div>
         </div>
       </section>
@@ -512,16 +498,11 @@ function bootstrap() {
       : '<span aria-hidden="true">&#10074;&#10074;</span>';
   });
 
-  // 4. Mount 3D DACH Map
-  const mapCanvas = document.getElementById('dach-map-canvas') as HTMLCanvasElement;
-  const mapReadout = document.getElementById('dach-map-readout') as HTMLElement;
-  const cityBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.city-pill-btn'));
-  const dachMap = mountDachMap(mapCanvas, mapReadout, cityBtns, () => modals.openAudit());
-  cityBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.city) dachMap.selectCity(btn.dataset.city);
-    });
-  });
+  // 4. Mount Animated 3D DEPLOY GLB Logo in Contact Section
+  const contactLogoHost = document.getElementById('contact-logo-3d-host');
+  if (contactLogoHost) {
+    mountContactLogo3D(contactLogoHost, './tripo_convert_7af4e75d-d35f-481b-a036-0626eb162882.glb');
+  }
 
   // 5. Animated Results Odometer Counters (reversible & reduced-motion safe)
   const counterEls = Array.from(document.querySelectorAll<HTMLElement>('.rm-number'));
