@@ -1,12 +1,10 @@
 import './styles/main.css';
 import { SITE_CONFIG } from './config/siteConfig';
 import { mountHeroGlassSphere } from './three/HeroGlassSphere';
-import { mountContactMascot3D } from './three/ContactMascot3D';
 import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
-import { initVenomButtons } from './effects/VenomButtons';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -498,14 +496,27 @@ function bootstrap() {
       : '<span aria-hidden="true">&#10074;&#10074;</span>';
   });
 
-  // 4. Mount Rigged & IK-Driven 3D DEPLOY Mascot in Contact Section
+  // 4. Lazy-Mount Rigged & IK-Driven 3D DEPLOY Mascot only when user approaches Contact section
   const contactLogoHost = document.getElementById('contact-logo-3d-host');
   if (contactLogoHost) {
-    mountContactMascot3D(
-      contactLogoHost,
-      contactSection,
-      './tripo_convert_d4ce10d2-55d9-4093-944b-7692ec975245.glb'
+    let mascotMounted = false;
+    const mascotIo = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !mascotMounted) {
+          mascotMounted = true;
+          mascotIo.disconnect();
+          import('./three/ContactMascot3D').then(({ mountContactMascot3D }) => {
+            mountContactMascot3D(
+              contactLogoHost,
+              contactSection,
+              './tripo_convert_d4ce10d2-55d9-4093-944b-7692ec975245.glb'
+            );
+          });
+        }
+      },
+      { rootMargin: '650px' }
     );
+    mascotIo.observe(contactSection);
   }
 
   // 5. Animated Results Odometer Counters (reversible & reduced-motion safe)
@@ -523,8 +534,31 @@ function bootstrap() {
     });
   };
 
-  // 5b. Mount DEPLOY-blue WebGL Venom liquid symbiote effect on primary pill buttons
-  initVenomButtons('.btn-yellow-pill, .nav-audit-btn');
+  // 5b. Lazy-Mount DEPLOY-blue WebGL Venom liquid button effect on pointer devices (skip on touch phones for 0 GPU overhead)
+  const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (!isTouchOnly) {
+    import('./effects/VenomButtons').then(({ initVenomButtons }) => {
+      initVenomButtons('.btn-yellow-pill, .nav-audit-btn');
+    });
+  }
+
+  // 5c. Smooth compositor-only scroll reveal for cards across mobile & desktop
+  const revealTargets = Array.from(
+    document.querySelectorAll<HTMLElement>('.portfolio-card, .result-metric, .case-card, .process-mobile-card')
+  );
+  revealTargets.forEach((el) => el.classList.add('reveal-on-scroll'));
+  const revealIo = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in-view');
+          revealIo.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+  );
+  revealTargets.forEach((el) => revealIo.observe(el));
 
   // Reduced motion listener
   const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');

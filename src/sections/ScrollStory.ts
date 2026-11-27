@@ -1,5 +1,5 @@
 import { SITE_CONFIG } from '../config/siteConfig';
-import { mountDeployLogo3D } from '../three/DeployLogo3D';
+import type { DeployLogo3DController } from '../three/DeployLogo3D';
 
 export interface ScrollStoryController {
   update: (progress: number) => void;
@@ -204,10 +204,26 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   const beatEls = Array.from(section.querySelectorAll<HTMLElement>('.story-beat-copy'));
   const dotEls = Array.from(section.querySelectorAll<HTMLElement>('.story-dot'));
 
-  const logo3D =
-    logo3DHost && SITE_CONFIG.assets.zerothLogo.glbUrl
-      ? mountDeployLogo3D(logo3DHost, SITE_CONFIG.assets.zerothLogo.glbUrl, logoFallback)
-      : null;
+  // Lazy-load the segmented 3D GLB logo only when the user approaches the Scroll Story section
+  let logo3D: DeployLogo3DController | null = null;
+  let logo3DLoading = false;
+  const ensureLogo3D = () => {
+    if (logo3D || logo3DLoading || !logo3DHost || !SITE_CONFIG.assets.zerothLogo.glbUrl) return;
+    logo3DLoading = true;
+    import('../three/DeployLogo3D').then(({ mountDeployLogo3D }) => {
+      logo3D = mountDeployLogo3D(logo3DHost, SITE_CONFIG.assets.zerothLogo.glbUrl!, logoFallback);
+    });
+  };
+  const storyIo = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        ensureLogo3D();
+        storyIo.disconnect();
+      }
+    },
+    { rootMargin: '500px' }
+  );
+  storyIo.observe(section);
 
   const query = SITE_CONFIG.story.queryText;
 

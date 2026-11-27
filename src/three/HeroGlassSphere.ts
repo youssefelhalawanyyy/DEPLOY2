@@ -307,7 +307,8 @@ export function mountHeroGlassSphere(
     };
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouchDevice ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.className = 'hero-sphere-canvas';
   renderer.domElement.setAttribute('aria-hidden', 'true');
@@ -382,8 +383,18 @@ export function mountHeroGlassSphere(
   const clock = new THREE.Clock();
   let elapsed = 0;
 
+  let isInViewport = true;
+  const io = new IntersectionObserver(
+    (entries) => {
+      isInViewport = entries[0]?.isIntersecting ?? true;
+    },
+    { rootMargin: '200px' }
+  );
+  io.observe(container);
+
   const renderFrame = () => {
     rafId = window.requestAnimationFrame(renderFrame);
+    if (!isInViewport) return;
     const dt = Math.min(clock.getDelta(), 0.05);
     if (!reducedMotion) {
       elapsed += dt;
@@ -398,12 +409,15 @@ export function mountHeroGlassSphere(
     const viewHalfH = camera.position.z * halfFovTan;
     const viewHalfW = viewHalfH * camera.aspect;
 
-    // Rest position matches the reference before first mouse movement
-    const restX = isNarrow ? -0.1 : -0.34;
-    const restY = isNarrow ? -0.02 : -0.14;
+    // On mobile/touch devices, gently glide the lens across DEPLOY automatically until touched
+    const mobileAutoActive = isTouchDevice && !reducedMotion;
+    const autoGlideX = mobileAutoActive ? Math.sin(elapsed * 0.85) * (viewHalfW * 0.52) : -0.34;
+    const autoGlideY = mobileAutoActive ? Math.cos(elapsed * 1.1) * 0.12 : -0.14;
+
+    const restX = isNarrow ? autoGlideX : -0.34;
+    const restY = isNarrow ? autoGlideY : -0.14;
     const centerFactor = Math.min(1, scrollProgress * 2.2);
 
-    // Map cursor directly into the z=0 world plane so the glass lens tracks the mouse 1:1
     const desiredX = hasPointerMoved && !reducedMotion ? currentPointerX * viewHalfW : restX;
     const desiredY = hasPointerMoved && !reducedMotion ? -currentPointerY * viewHalfH : restY;
     const floatY = reducedMotion || hasPointerMoved ? 0 : Math.sin(elapsed * 0.85) * 0.025 * (1 - centerFactor);
@@ -411,16 +425,15 @@ export function mountHeroGlassSphere(
     sphere.position.x = desiredX * (1 - centerFactor);
     sphere.position.y = desiredY * (1 - centerFactor) + floatY;
 
-    const targetVis = isActive || scrollProgress > 0.04 ? 1 : 0;
+    const targetVis = isActive || mobileAutoActive || scrollProgress > 0.04 ? 1 : 0;
     currentVisibility += (targetVis - currentVisibility) * 0.16;
     if (Math.abs(targetVis - currentVisibility) < 0.002) currentVisibility = targetVis;
 
-    const baseScale = (isNarrow ? 0.72 : 0.94) * (0.84 + 0.16 * currentVisibility);
+    const baseScale = (isNarrow ? 0.62 : 0.94) * (0.84 + 0.16 * currentVisibility);
     const zoomCurve = Math.pow(Math.min(1, scrollProgress / 0.82), 2.15);
     const scale = baseScale + zoomCurve * (isNarrow ? 3.8 : 4.6);
     sphere.scale.setScalar(scale);
 
-    // Compute approximate NDC radius for accurate optical refraction offset
     const ndcRadiusY = (1.02 * scale) / viewHalfH;
     const ndcRadiusX = ndcRadiusY / Math.max(0.2, camera.aspect);
     uniforms.uSphereRadiusNdc.value.set(ndcRadiusX, ndcRadiusY);
@@ -461,6 +474,7 @@ export function mountHeroGlassSphere(
     },
     destroy() {
       window.cancelAnimationFrame(rafId);
+      io.disconnect();
       ro.disconnect();
       geometry.dispose();
       material.dispose();

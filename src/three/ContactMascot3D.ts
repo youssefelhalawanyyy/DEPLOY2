@@ -385,7 +385,8 @@ export function mountContactMascot3D(
     return { destroy: () => {} };
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -642,8 +643,18 @@ export function mountContactMascot3D(
   let walkPhase = 0;
   const clock = new THREE.Clock();
 
+  let isVisible = true;
+  const visIo = new IntersectionObserver(
+    (entries) => {
+      isVisible = entries[0]?.isIntersecting ?? true;
+    },
+    { rootMargin: '250px' }
+  );
+  visIo.observe(container);
+
   const animate = () => {
     rafId = window.requestAnimationFrame(animate);
+    if (!isVisible) return;
     const dt = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.elapsedTime;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -778,6 +789,7 @@ export function mountContactMascot3D(
     destroy() {
       window.cancelAnimationFrame(rafId);
       st.kill();
+      visIo.disconnect();
       ro.disconnect();
       controls.dispose();
       window.removeEventListener('pointermove', onPointerMove);
