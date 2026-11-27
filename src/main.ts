@@ -17,6 +17,40 @@ function renderLogoMark(slotId = 'zeroth-logo'): string {
   `;
 }
 
+function renderOdometerHTML(valueStr: string): string {
+  // Turns "99.9%", "3×", "4×", "14d" into vertical rolling digit wheels + static punctuation
+  let digitIdx = 0;
+  const chars = Array.from(valueStr);
+  return `<span class="odo-wrap" aria-label="${valueStr}">${chars
+    .map((ch) => {
+      if (ch >= '0' && ch <= '9') {
+        const target = Number(ch);
+        const idx = digitIdx++;
+        const digits = '0123456789'
+          .split('')
+          .map((d) => `<span class="odo-digit">${d}</span>`)
+          .join('');
+        return `<span class="odo-col" aria-hidden="true"><span class="odo-track" data-target-digit="${target}" data-digit-pos="${idx}">${digits}</span></span>`;
+      }
+      return `<span class="odo-static" aria-hidden="true">${ch}</span>`;
+    })
+    .join('')}</span>`;
+}
+
+function updateOdometerContainer(container: Element, progress: number, reduced: boolean): void {
+  const tracks = container.querySelectorAll<HTMLElement>('.odo-track');
+  const p = reduced ? 1 : clamp01(progress);
+  tracks.forEach((track) => {
+    const target = Number(track.dataset.targetDigit || '0');
+    const pos = Number(track.dataset.digitPos || '0');
+    // Slight stagger per digit column so lower-place digits spin smoothly into place
+    const localP = reduced ? 1 : clamp01((p - pos * 0.06) / Math.max(0.25, 1 - pos * 0.06));
+    const eased = 1 - Math.pow(1 - localP, 3);
+    const currentVal = target * eased;
+    track.style.transform = `translate3d(0, -${currentVal.toFixed(4)}em, 0)`;
+  });
+}
+
 function renderWhyNowWords(): string {
   const { whyNow } = SITE_CONFIG;
   const words = whyNow.statementBeforeHighlight.trim().split(/\s+/);
@@ -139,7 +173,7 @@ function buildAppHTML(): string {
                 .map(
                   (s) => `
                 <div class="wn-stat-col">
-                  <div class="wn-stat-val">${s.value}</div>
+                  <div class="wn-stat-val">${renderOdometerHTML(s.value)}</div>
                   <div class="wn-stat-label">${s.label}</div>
                   <p class="wn-stat-source">${s.source}</p>
                 </div>
@@ -177,15 +211,9 @@ function buildAppHTML(): string {
           <div class="results-metrics-grid" id="results-metrics-grid">
             ${cfg.results.metrics
               .map(
-                (m, i) => `
+                (m) => `
               <div class="result-metric">
-                <div
-                  class="rm-number"
-                  data-counter-idx="${i}"
-                  data-prefix="${m.prefix || ''}"
-                  data-target="${m.target}"
-                  data-suffix="${m.suffix}"
-                >${m.prefix || ''}0${m.suffix}</div>
+                <div class="rm-number">${renderOdometerHTML(`${m.prefix || ''}${m.target}${m.suffix}`)}</div>
                 <div class="rm-label">${m.label}</div>
                 <div class="rm-sublabel">${m.sublabel}</div>
               </div>
@@ -519,19 +547,11 @@ function bootstrap() {
     mascotIo.observe(contactSection);
   }
 
-  // 5. Animated Results Odometer Counters (reversible & reduced-motion safe)
-  const counterEls = Array.from(document.querySelectorAll<HTMLElement>('.rm-number'));
+  // 5. Scroll-driven Vertical Odometer Rollers for Results & Why-Now stats
+  const resultsMetricsGrid = document.getElementById('results-metrics-grid')!;
   const updateResultsCounters = (progress: number) => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const p = reduced ? 1 : clamp01(progress);
-    const eased = 1 - Math.pow(1 - p, 3);
-    counterEls.forEach((el) => {
-      const prefix = el.dataset.prefix || '';
-      const target = Number(el.dataset.target || '0');
-      const suffix = el.dataset.suffix || '';
-      const val = Math.round(target * eased);
-      el.textContent = `${prefix}${val}${suffix}`;
-    });
+    updateOdometerContainer(resultsMetricsGrid, progress, reduced);
   };
 
   // 5b. Lazy-Mount DEPLOY-blue WebGL Venom liquid button effect on pointer devices (skip on touch phones for 0 GPU overhead)
@@ -617,6 +637,7 @@ function bootstrap() {
     });
     whyNowStats.style.opacity = statsVis.toFixed(3);
     whyNowStats.style.transform = `translate3d(0, ${((1 - statsVis) * 20).toFixed(1)}px, 0)`;
+    updateOdometerContainer(whyNowStats, statsVis, reduced);
 
     // C. 9-Beat Scroll Story
     const storyP = getSectionProgress(storySection);
@@ -625,9 +646,9 @@ function bootstrap() {
     // D. Services Stack live diagrams
     servicesCtrl.update();
 
-    // E. Results counters
-    const resRect = resultsSection.getBoundingClientRect();
-    const resP = clamp01((vh * 0.85 - resRect.top) / (vh * 0.45));
+    // E. Results vertical odometer rollers (scrubbed smoothly across viewport entry)
+    const resRect = resultsMetricsGrid.getBoundingClientRect();
+    const resP = clamp01((vh * 0.92 - resRect.top) / (vh * 0.42));
     updateResultsCounters(resP);
 
     // F. Process 4-Step Curve

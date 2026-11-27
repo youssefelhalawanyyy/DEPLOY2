@@ -1927,6 +1927,38 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* Scroll-Driven Mechanical Odometer Digit Rollers */
+.odo-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.odo-col {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.odo-track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.odo-digit {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+.odo-static {
+  display: inline-block;
+  line-height: 1;
+}
+
 .rm-label {
   font-size: 0.98rem;
   font-weight: 600;
