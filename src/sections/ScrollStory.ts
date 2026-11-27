@@ -308,11 +308,11 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     const rotY = lerp(-12, 0, flatten);
     const rotZ = lerp(-3.5, 0, flatten);
 
-    // Card stack Y offset: pushes down in Beat 07 when AI Overview moves in above it
+    // Card stack Y offset: centered vertically (-50%), then pushes down in Beat 07 when DEPLOYED box moves in above it
     const aiPushDown = smooth(invLerp(0.68, 0.74, p));
-    const stackY = lerp(24, -10, stackIn) + aiPushDown * 128;
+    const stackY = lerp(24, -18, stackIn) + aiPushDown * 116;
     const stackScale = lerp(0.92, 1.0, stackIn) * lerp(1, 0.86, aiPushDown);
-    cardStack.style.transform = `translate3d(-50%, ${stackY.toFixed(1)}px, 0) perspective(1100px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${stackScale.toFixed(3)})`;
+    cardStack.style.transform = `translate3d(-50%, calc(-50% + ${stackY.toFixed(1)}px), 0) perspective(1100px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${stackScale.toFixed(3)})`;
 
     // Ghost cards fade out once we reach #1
     const ghostOpacity = 1 - smooth(invLerp(0.57, 0.63, p));

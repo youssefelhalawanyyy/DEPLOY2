@@ -870,9 +870,9 @@ button {
 
 .story-card-stack {
   position: absolute;
-  top: 50%;
-  left: 56%;
-  width: min(640px, 84vw);
+  top: 48%;
+  left: 58%;
+  width: min(620px, 84vw);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1104,15 +1104,15 @@ button {
 .story-copy-panel {
   position: absolute;
   left: max(32px, calc((100vw - 1240px) / 2));
-  bottom: 72px;
+  bottom: 74px;
   z-index: 8;
-  width: min(370px, 86vw);
+  width: min(390px, 86vw);
   pointer-events: none;
 }
 
 .story-beat-copy {
   position: absolute;
-  bottom: 42px;
+  bottom: 84px;
   left: 0;
   right: 0;
   opacity: 0;
@@ -3153,7 +3153,7 @@ button {
     right: 14px;
     width: auto;
     bottom: 42px;
-    min-height: 175px;
+    min-height: 205px;
     padding: 18px 18px 16px;
     border-radius: 18px;
     background: rgba(10, 10, 13, 0.88);
@@ -3165,7 +3165,7 @@ button {
   .story-beat-copy {
     left: 18px;
     right: 18px;
-    bottom: 44px;
+    bottom: 68px;
   }
 
   .story-beat-title {
