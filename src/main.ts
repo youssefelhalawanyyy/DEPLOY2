@@ -627,8 +627,8 @@ function bootstrap() {
         statsVis = clamp01((vh * 0.9 - wnRect.top) / (vh * 0.45));
       } else {
         const wnP = getSectionProgress(whyNowSection);
-        animP = clamp01((wnP - 0.12) / 0.64);
-        statsVis = clamp01((wnP - 0.72) / 0.16);
+        animP = clamp01((wnP - 0.04) / 0.68);
+        statsVis = clamp01((wnP - 0.70) / 0.18);
       }
     }
     const litCount = Math.floor(animP * (whyNowWords.length + 1));

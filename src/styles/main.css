@@ -387,7 +387,8 @@ button {
    ============================================================ */
 .hero-section {
   position: relative;
-  height: 250vh;
+  z-index: 1;
+  height: 185vh;
   background: var(--bg-black);
 }
 
@@ -590,8 +591,10 @@ button {
    ============================================================ */
 .why-now-section {
   position: relative;
-  height: 280vh;
-  background: var(--bg-black);
+  z-index: 3;
+  margin-top: -38vh;
+  height: 245vh;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000000 16%, #000000 100%);
 }
 
 .why-now-sticky {
@@ -2966,7 +2969,7 @@ button {
   }
 
   .hero-section {
-    height: 155vh;
+    height: 145vh;
   }
 
   .hero-sticky {
@@ -3038,8 +3041,9 @@ button {
   }
 
   .why-now-section {
+    margin-top: -18vh;
     height: auto;
-    padding: 72px 0;
+    padding: 56px 0 72px;
   }
 
   .why-now-sticky {

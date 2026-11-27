@@ -430,7 +430,7 @@ export function mountHeroGlassSphere(
     if (Math.abs(targetVis - currentVisibility) < 0.002) currentVisibility = targetVis;
 
     const baseScale = (isNarrow ? 0.62 : 0.94) * (0.84 + 0.16 * currentVisibility);
-    const zoomCurve = Math.pow(Math.min(1, scrollProgress / 0.82), 2.15);
+    const zoomCurve = Math.pow(Math.min(1, scrollProgress / 0.96), 2.05);
     const scale = baseScale + zoomCurve * (isNarrow ? 3.8 : 4.6);
     sphere.scale.setScalar(scale);
 
@@ -438,7 +438,7 @@ export function mountHeroGlassSphere(
     const ndcRadiusX = ndcRadiusY / Math.max(0.2, camera.aspect);
     uniforms.uSphereRadiusNdc.value.set(ndcRadiusX, ndcRadiusY);
 
-    const zoomFade = Math.max(0, Math.min(1, (scrollProgress - 0.74) / 0.24));
+    const zoomFade = Math.max(0, Math.min(1, (scrollProgress - 0.86) / 0.14));
 
     uniforms.uTime.value = elapsed;
     uniforms.uScroll.value = scrollProgress;
