@@ -390,7 +390,7 @@ function bootstrap() {
   // 1. Mount Hero 3D Glass Sphere (passes headline element for exact letterform masking)
   const sphereCtrl = mountHeroGlassSphere(heroSphereHost, heroReadingQuery, heroDisplayTitle);
 
-  // Pointer tracking for Hero sphere — activates only when cursor is over "DEPLOY"
+  // Pointer & touch tracking for Hero sphere — activates only when cursor/finger is over "DEPLOY"
   let isOverDeploy = false;
   heroReadingCaption.style.opacity = '0';
   heroReadingCaption.style.transition = 'opacity 0.22s ease';
@@ -401,24 +401,36 @@ function bootstrap() {
     heroReadingCaption.style.opacity = active ? '1' : '0';
   };
 
+  const handleHeroPointer = (clientX: number, clientY: number) => {
+    const rect = heroSphereHost.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = ((clientY - rect.top) / rect.height) * 2 - 1;
+    sphereCtrl.setPointer(nx, ny);
+
+    const titleRect = heroDisplayTitle.getBoundingClientRect();
+    const pad = window.innerWidth < 768 ? 28 : 20;
+    const over =
+      clientX >= titleRect.left - pad &&
+      clientX <= titleRect.right + pad &&
+      clientY >= titleRect.top - pad &&
+      clientY <= titleRect.bottom + pad;
+    if (over !== isOverDeploy) {
+      setDeployHover(over);
+    }
+  };
+
   window.addEventListener(
     'pointermove',
-    (e) => {
-      const rect = heroSphereHost.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      sphereCtrl.setPointer(nx, ny);
+    (e) => handleHeroPointer(e.clientX, e.clientY),
+    { passive: true }
+  );
 
-      const titleRect = heroDisplayTitle.getBoundingClientRect();
-      const pad = 20;
-      const over =
-        e.clientX >= titleRect.left - pad &&
-        e.clientX <= titleRect.right + pad &&
-        e.clientY >= titleRect.top - pad &&
-        e.clientY <= titleRect.bottom + pad;
-      if (over !== isOverDeploy) {
-        setDeployHover(over);
+  window.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+        handleHeroPointer(e.clientX, e.clientY);
       }
     },
     { passive: true }
@@ -561,14 +573,25 @@ function bootstrap() {
     heroReadingCaption.style.opacity = (isOverDeploy ? uiFade : 0).toFixed(3);
     heroDisplayTitle.style.opacity = clamp01(1 - Math.max(0, heroP - 0.32) * 2.8).toFixed(3);
 
-    // B. Why Now word-by-word illumination (waits until pinned in the middle of the screen, then animates)
-    const wnP = reduced ? 1 : getSectionProgress(whyNowSection);
-    const animP = reduced ? 1 : clamp01((wnP - 0.12) / 0.64);
+    // B. Why Now word-by-word illumination (waits until pinned in the middle on desktop; viewport-based on mobile)
+    const isMobile = window.innerWidth <= 768;
+    let animP = 1;
+    let statsVis = 1;
+    if (!reduced) {
+      if (isMobile) {
+        const wnRect = whyNowSection.getBoundingClientRect();
+        animP = clamp01((vh * 0.85 - wnRect.top) / (vh * 0.65));
+        statsVis = clamp01((vh * 0.9 - wnRect.top) / (vh * 0.45));
+      } else {
+        const wnP = getSectionProgress(whyNowSection);
+        animP = clamp01((wnP - 0.12) / 0.64);
+        statsVis = clamp01((wnP - 0.72) / 0.16);
+      }
+    }
     const litCount = Math.floor(animP * (whyNowWords.length + 1));
     whyNowWords.forEach((w, idx) => {
       w.classList.toggle('is-lit', idx < litCount);
     });
-    const statsVis = reduced ? 1 : clamp01((wnP - 0.72) / 0.16);
     whyNowStats.style.opacity = statsVis.toFixed(3);
     whyNowStats.style.transform = `translate3d(0, ${((1 - statsVis) * 20).toFixed(1)}px, 0)`;
 

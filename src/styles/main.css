@@ -360,11 +360,12 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: calc(var(--header-h) + 28px) 48px 36px;
+  padding: calc(var(--header-h) + 24px + env(safe-area-inset-top, 0px)) clamp(18px, 3.6vw, 48px) calc(28px + env(safe-area-inset-bottom, 0px));
 }
 
 .hero-grid-bg {
@@ -562,6 +563,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
   padding-top: var(--header-h);
   display: flex;
   align-items: center;
@@ -641,6 +643,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -1962,6 +1965,8 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
+  padding-top: var(--header-h);
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -2705,11 +2710,37 @@ button {
 }
 
 /* ============================================================
-   RESPONSIVE: NARROW / MOBILE VIEWPORTS
+   RESPONSIVE: TABLETS, NARROW LAPTOPS & SHORT SCREENS
    ============================================================ */
-@media (max-width: 1024px) {
-  .service-card-grid {
+@media (max-height: 760px) and (min-width: 769px) {
+  .hero-display-title {
+    font-size: clamp(4rem, 11vw, 9.6rem);
+  }
+
+  .hero-sticky {
+    padding-top: calc(var(--header-h) + 12px);
+    padding-bottom: 18px;
+  }
+
+  .why-now-statement {
+    font-size: clamp(1.25rem, 2.1vw, 1.85rem);
+    margin: 12px 0 24px;
+  }
+
+  .why-now-stats {
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 1120px) {
+  .service-card-grid,
+  .portfolio-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .service-card {
+    position: relative;
+    top: auto;
   }
 
   .results-metrics-grid,
@@ -2769,6 +2800,10 @@ button {
 }
 
 @media (max-width: 768px) {
+  :root {
+    --header-h: 60px;
+  }
+
   .container {
     width: min(100% - 32px, 1240px);
   }
@@ -2785,24 +2820,49 @@ button {
     display: inline-flex;
   }
 
+  .hero-section {
+    height: 190vh;
+  }
+
   .hero-sticky {
-    padding: calc(var(--header-h) + 16px) 18px 22px;
+    padding: calc(var(--header-h) + 14px) 18px calc(22px + env(safe-area-inset-bottom, 0px));
   }
 
   .hero-display-title {
-    font-size: clamp(3.3rem, 17vw, 5.4rem);
+    font-size: clamp(3.3rem, 18vw, 5.4rem);
   }
 
   .hero-reading-caption {
     left: 18px;
     right: 18px;
-    bottom: 4%;
+    bottom: 6%;
+    text-align: center;
+    max-width: none;
   }
 
   .hero-bottom-bar {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 18px;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .hero-bottom-left {
+    max-width: none;
+  }
+
+  .hero-tagline {
+    font-size: 0.94rem;
+    margin-bottom: 14px;
+  }
+
+  .hero-cta-row {
+    gap: 12px;
+  }
+
+  .btn-yellow-pill {
+    padding: 13px 22px;
+    font-size: 0.9rem;
+    min-height: 46px;
   }
 
   .hero-definition,
@@ -2812,12 +2872,18 @@ button {
 
   .why-now-section {
     height: auto;
-    padding: 84px 0;
+    padding: 76px 0;
   }
 
   .why-now-sticky {
     position: relative;
     height: auto;
+    padding-top: 0;
+  }
+
+  .why-now-statement {
+    font-size: clamp(1.3rem, 5.4vw, 1.7rem);
+    margin: 14px 0 32px;
   }
 
   .why-now-stats {
@@ -2825,44 +2891,146 @@ button {
     gap: 28px;
   }
 
+  /* 9-Beat Scroll Story tuned for narrow portrait phones */
+  .story-section {
+    height: 680vh;
+  }
+
+  .story-search-bar {
+    top: 30%;
+    left: 50%;
+    width: 92vw;
+    height: 58px;
+    padding: 0 20px;
+    font-size: 1rem;
+    gap: 12px;
+  }
+
+  .story-search-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .story-ai-box {
+    top: 32%;
+    left: 50%;
+    width: 92vw;
+    padding: 18px 18px 16px;
+  }
+
+  .story-ai-heading {
+    font-size: 1.55rem;
+    margin-bottom: 12px;
+  }
+
+  .story-card-stack {
+    top: 37%;
+    left: 50%;
+    width: 92vw;
+    gap: 10px;
+  }
+
+  .result-card {
+    padding: 14px 16px;
+    gap: 16px;
+  }
+
+  .hero-result-card {
+    padding: 18px 18px;
+  }
+
+  .rc-num {
+    font-size: 1.8rem;
+    min-width: 48px;
+  }
+
+  .story-fix-lens {
+    width: 132px;
+    height: 132px;
+  }
+
+  .story-citation-arcs {
+    left: 50%;
+    width: 92vw;
+    height: 180px;
+  }
+
   .story-copy-panel {
     left: 16px;
     right: 16px;
     width: auto;
-    bottom: 48px;
+    bottom: 44px;
   }
 
-  .story-search-bar,
-  .story-card-stack,
-  .story-ai-box {
-    left: 50%;
-    width: 92vw;
+  .story-beat-copy {
+    bottom: 36px;
   }
 
-  .service-card {
-    position: relative;
-    top: auto;
+  .story-beat-title {
+    font-size: 1.55rem;
   }
 
-  .local-layout {
+  .story-beat-body {
+    font-size: 0.88rem;
+  }
+
+  .story-zeroth-finale {
+    padding: 20px 18px 12vh;
+  }
+
+  .zm-title {
+    font-size: clamp(2rem, 10vw, 2.8rem);
+  }
+
+  .zm-subtitle {
+    font-size: 0.92rem;
+  }
+
+  /* Portfolio & Services Cards on Phones */
+  .services-section {
+    padding: 76px 0 88px;
+  }
+
+  .section-header-light {
+    margin-bottom: 40px;
+  }
+
+  .service-card-bar {
+    padding: 12px 16px;
+  }
+
+  .service-card-grid,
+  .portfolio-card-grid {
+    padding: 22px 18px 24px;
+    gap: 22px;
+  }
+
+  .portfolio-drag-shell {
+    height: 350px;
+  }
+
+  .pd-hud-bar {
+    padding: 10px 12px;
+  }
+
+  .pd-hud-hint {
+    display: none;
+  }
+
+  /* Results, Clients, Contact, Footer on Phones */
+  .results-section,
+  .contact-section {
+    padding: 80px 0 76px;
+  }
+
+  .results-metrics-grid {
+    gap: 28px;
+    margin-bottom: 44px;
+  }
+
+  .clients-footer-row {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .local-grid {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    width: 100%;
-    gap: 5px;
-  }
-
-  .local-pin {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1;
-  }
-
-  .ai-platforms {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .dach-map-readout {
@@ -2878,13 +3046,41 @@ button {
   }
 
   .dach-map-canvas {
-    height: 290px;
+    height: 270px;
+  }
+
+  .contact-cta-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .form-row-2,
   .footer-top-grid,
   .film-chapter-btn {
     grid-template-columns: 1fr;
+  }
+
+  .dialog-panel {
+    padding: 22px 18px 24px;
+  }
+
+  .lightbox-panel {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero-display-title {
+    font-size: clamp(2.8rem, 17.5vw, 3.6rem);
+  }
+
+  .service-code-pill {
+    font-size: 0.62rem;
+    padding: 4px 9px;
+  }
+
+  .portfolio-drag-shell {
+    height: 310px;
   }
 }
 
