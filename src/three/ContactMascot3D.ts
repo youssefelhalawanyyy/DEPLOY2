@@ -15,11 +15,8 @@ interface RigBoneInfo {
   bone: THREE.Bone;
   restQuat: THREE.Quaternion;
   restPos: THREE.Vector3;
-  /** Local axis in this bone's bind space corresponding to world +X (sagittal pitch forward/back) */
   localWorldX: THREE.Vector3;
-  /** Local axis in this bone's bind space corresponding to world +Y (vertical yaw) */
   localWorldY: THREE.Vector3;
-  /** Local axis in this bone's bind space corresponding to world +Z (frontal roll / arm raise & wave) */
   localWorldZ: THREE.Vector3;
 }
 
@@ -32,7 +29,7 @@ interface MappedSkeleton {
   screenLeftUpperArm?: RigBoneInfo;
   screenLeftForearm?: RigBoneInfo;
   screenLeftHand?: RigBoneInfo;
-  // Screen-right leg & arm (anatomical L_* in GLB, X > 0 — open side of the "D")
+  // Screen-right leg & arm (anatomical L_* in GLB, X > 0)
   screenRightThigh?: RigBoneInfo;
   screenRightCalf?: RigBoneInfo;
   screenRightFoot?: RigBoneInfo;
@@ -67,9 +64,6 @@ function makeBoneInfo(bone: THREE.Bone): RigBoneInfo {
   };
 }
 
-/**
- * Applies clean world-space axis rotations (rotZ -> rotY -> rotX) on top of the bone's exact bind pose.
- */
 function applyWorldDelta(info: RigBoneInfo | undefined, rotX = 0, rotY = 0, rotZ = 0): void {
   if (!info) return;
   info.bone.quaternion.copy(info.restQuat);
@@ -88,9 +82,66 @@ function applyWorldDelta(info: RigBoneInfo | undefined, rotX = 0, rotY = 0, rotZ
 }
 
 /**
- * Analytical Two-Bone IK Solver (Law of Cosines in the sagittal step plane)
- * with forward knee pole alignment so sneakers lift, swing forward, and plant cleanly.
+ * Purges any accidental Tripo auto-rig skin-weight bleed from the "D" frame, face, and front arrows
+ * by pinning all central D-shell vertices 100% to a locked rigid root bone, leaving ONLY the actual
+ * arm/hand extensions and lower legs/sneakers weighted to limb bones.
  */
+function isolateDShellSkinWeights(skinnedMesh: THREE.SkinnedMesh): void {
+  const geom = skinnedMesh.geometry;
+  const posAttr = geom.attributes.position;
+  const skinIdx = geom.attributes.skinIndex;
+  const skinWgt = geom.attributes.skinWeight;
+  if (!posAttr || !skinIdx || !skinWgt || !skinnedMesh.skeleton) return;
+
+  // Find a locked central bone index in skeleton.bones (e.g. Head or Pelvis)
+  const bones = skinnedMesh.skeleton.bones;
+  let rigidBoneIdx = bones.findIndex((b) => /^(Head|Spine02|Pelvis|Hip)$/i.test(b.name));
+  if (rigidBoneIdx < 0) rigidBoneIdx = 0;
+
+  const smooth = (e0: number, e1: number, x: number) => {
+    const t = THREE.MathUtils.clamp((x - e0) / (e1 - e0), 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+
+  for (let i = 0; i < posAttr.count; i++) {
+    const x = posAttr.getX(i);
+    const y = posAttr.getY(i);
+
+    // 1. Leg weight factor: 1.0 below y = 0.20, smoothly blending to 0.0 by y = 0.235 (below the "D" bottom bar)
+    const legFactor = 1 - smooth(0.20, 0.235, y);
+
+    // 2. Screen-left arm factor: x < -0.215 and 0.44 <= y <= 0.63
+    const leftArmX = 1 - smooth(-0.25, -0.205, x);
+    const leftArmY = smooth(0.43, 0.47, y) * (1 - smooth(0.60, 0.64, y));
+    const leftArmFactor = leftArmX * leftArmY;
+
+    // 3. Screen-right arm factor: x > +0.195 and 0.44 <= y <= 0.615 (keeps top-right arrow tip y > 0.62 100% rigid!)
+    const rightArmX = smooth(0.185, 0.23, x);
+    const rightArmY = smooth(0.43, 0.47, y) * (1 - smooth(0.595, 0.625, y));
+    const rightArmFactor = rightArmX * rightArmY;
+
+    const limbFactor = THREE.MathUtils.clamp(Math.max(legFactor, leftArmFactor, rightArmFactor), 0, 1);
+
+    if (limbFactor <= 0.001) {
+      // 100% rigid "D" logo body, face, or arrow vertex!
+      skinIdx.setXYZW(i, rigidBoneIdx, 0, 0, 0);
+      skinWgt.setXYZW(i, 1, 0, 0, 0);
+    } else if (limbFactor < 0.999) {
+      // Smooth socket blend at shoulder/hip seam
+      const w0 = skinWgt.getX(i) * limbFactor;
+      const w1 = skinWgt.getY(i) * limbFactor;
+      const w2 = skinWgt.getZ(i) * limbFactor;
+      const limbSum = w0 + w1 + w2;
+      const rigidW = Math.max(0, 1 - limbSum);
+      skinIdx.setW(i, rigidBoneIdx);
+      skinWgt.setXYZW(i, w0, w1, w2, rigidW);
+    }
+  }
+
+  skinIdx.needsUpdate = true;
+  skinWgt.needsUpdate = true;
+}
+
 function solveTwoBoneLegIK(
   thighLen: number,
   calfLen: number,
@@ -137,6 +188,9 @@ function createContactShadowTexture(): THREE.CanvasTexture {
   return tex;
 }
 
+const CENTRAL_LOCKED_BONE_REGEX =
+  /^(BoneRoot|Hip|Pelvis|Waist|Spine\d*|NeckTwist\d*|Head|FacialBone|L_Clavicle|R_Clavicle|neutral_bone)$/i;
+
 export function mountContactMascot3D(
   container: HTMLElement,
   sectionEl: HTMLElement,
@@ -165,17 +219,18 @@ export function mountContactMascot3D(
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
+  // Pulled camera slightly back & centered cleanly so the waving hand has generous top headroom
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-  camera.position.set(0, 0.98, 3.65);
+  camera.position.set(0, 0.82, 4.18);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableZoom = false;
   controls.enablePan = false;
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
-  controls.minPolarAngle = Math.PI * 0.34;
-  controls.maxPolarAngle = Math.PI * 0.6;
-  controls.target.set(0, 0.88, 0);
+  controls.minPolarAngle = Math.PI * 0.36;
+  controls.maxPolarAngle = Math.PI * 0.58;
+  controls.target.set(0, 0.76, 0);
   controls.update();
 
   // Studio environment + Electric Cyan #06B6D4 rim light + warm-white key light
@@ -198,9 +253,11 @@ export function mountContactMascot3D(
   const ambient = new THREE.AmbientLight(0xdbeafe, 0.44);
   scene.add(ambient);
 
-  // Soft ContactShadows plane directly under the sneakers
+  // Lowered mascot Y by -0.15 so top of waving hand never crops near card border
+  const BASE_Y_OFFSET = -0.15;
+
   const shadowTex = createContactShadowTexture();
-  const shadowGeo = new THREE.PlaneGeometry(1.6, 1.6);
+  const shadowGeo = new THREE.PlaneGeometry(1.55, 1.55);
   const shadowMat = new THREE.MeshBasicMaterial({
     map: shadowTex,
     transparent: true,
@@ -209,15 +266,17 @@ export function mountContactMascot3D(
   });
   const contactShadow = new THREE.Mesh(shadowGeo, shadowMat);
   contactShadow.rotation.x = -Math.PI / 2;
-  contactShadow.position.y = 0.002;
+  contactShadow.position.set(0, BASE_Y_OFFSET + 0.002, 0);
   scene.add(contactShadow);
 
+  // Rigid upright stage group — NEVER rotates sideways!
   const stageGroup = new THREE.Group();
-  const bodyMotionGroup = new THREE.Group();
-  stageGroup.add(bodyMotionGroup);
+  stageGroup.position.set(0, BASE_Y_OFFSET, 0);
+  stageGroup.rotation.set(0, 0, 0);
   scene.add(stageGroup);
 
   let mapped: MappedSkeleton | null = null;
+  let mixer: THREE.AnimationMixer | null = null;
   let eyelidLeftPivot: THREE.Group | null = null;
   let eyelidRightPivot: THREE.Group | null = null;
   let blinkMorphMesh: THREE.Mesh | null = null;
@@ -230,7 +289,7 @@ export function mountContactMascot3D(
     (gltf) => {
       const root = gltf.scene;
 
-      // Normalize height to 1.74 world units and plant sneakers cleanly on y = 0
+      // Normalize height & plant sneakers cleanly on y = 0 inside stageGroup, facing straight +Z
       root.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(root);
       const size = new THREE.Vector3();
@@ -238,24 +297,28 @@ export function mountContactMascot3D(
       box.getSize(size);
       box.getCenter(center);
 
-      const MASCOT_HEIGHT = 1.74;
+      const MASCOT_HEIGHT = 1.68;
       const scale = MASCOT_HEIGHT / Math.max(size.y, 0.001);
       root.scale.setScalar(scale);
       root.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-      bodyMotionGroup.add(root);
-      bodyMotionGroup.updateMatrixWorld(true);
+      root.rotation.set(0, 0, 0);
+      stageGroup.add(root);
+      stageGroup.updateMatrixWorld(true);
 
       const skel: MappedSkeleton = {
         lockedBody: [],
-        thighLen: 0.24,
-        calfLen: 0.25,
+        thighLen: 0.23,
+        calfLen: 0.24,
       };
 
-      const LOCKED_PATTERN = /^(BoneRoot|Hip|Pelvis|Waist|Spine\d*|NeckTwist\d*|Head|FacialBone|neutral_bone)$/i;
       let rEyeBone: THREE.Bone | null = null;
       let lEyeBone: THREE.Bone | null = null;
 
       root.traverse((obj) => {
+        if (obj instanceof THREE.SkinnedMesh) {
+          isolateDShellSkinWeights(obj);
+        }
+
         if (obj instanceof THREE.Mesh && obj.morphTargetDictionary) {
           for (const [mName, idx] of Object.entries(obj.morphTargetDictionary)) {
             if (/blink|eyelid/i.test(mName)) {
@@ -268,13 +331,11 @@ export function mountContactMascot3D(
         if (!(obj instanceof THREE.Bone)) return;
         const n = obj.name;
 
-        if (LOCKED_PATTERN.test(n)) {
+        if (CENTRAL_LOCKED_BONE_REGEX.test(n)) {
           skel.lockedBody.push(makeBoneInfo(obj));
           return;
         }
 
-        // Note: Mascot faces +Z toward viewer, so anatomical R_* is screen-left (X < 0)
-        // and anatomical L_* is screen-right (X > 0, the open curved side of the "D"!)
         if (/^R_Eye$/i.test(n)) rEyeBone = obj;
         else if (/^L_Eye$/i.test(n)) lEyeBone = obj;
         else if (/^R_Thigh$/i.test(n)) skel.screenLeftThigh = makeBoneInfo(obj);
@@ -291,7 +352,19 @@ export function mountContactMascot3D(
         else if (/^L_Hand$/i.test(n)) skel.screenRightHand = makeBoneInfo(obj);
       });
 
-      // Measure scaled thigh & calf segment lengths for exact Two-Bone IK
+      // If embedded AnimationClips exist in a future GLB, strip all central spine/hip/root tracks
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(root);
+        for (const rawClip of gltf.animations) {
+          const clip = rawClip.clone();
+          clip.tracks = clip.tracks.filter((track) => {
+            const targetNode = track.name.split('.')[0];
+            return !CENTRAL_LOCKED_BONE_REGEX.test(targetNode);
+          });
+          mixer.clipAction(clip).play();
+        }
+      }
+
       if (skel.screenRightThigh && skel.screenRightCalf && skel.screenRightFoot) {
         const pThigh = new THREE.Vector3();
         const pCalf = new THREE.Vector3();
@@ -303,8 +376,7 @@ export function mountContactMascot3D(
         skel.calfLen = Math.max(0.08, pCalf.distanceTo(pFoot));
       }
 
-      // Attach curvature-matched cyan/blue eyelid meshes in clean upright bodyMotionGroup space
-      // directly at the exact world-converted coordinates of R_Eye & L_Eye
+      // Attach curvature-matched cyan/blue eyelid meshes directly on the rigid front face
       if (blinkMorphIdx < 0 && rEyeBone && lEyeBone) {
         const lidMat = new THREE.MeshStandardMaterial({
           color: 0x06b6d4,
@@ -313,21 +385,21 @@ export function mountContactMascot3D(
           roughness: 0.28,
           metalness: 0.15,
         });
-        const lidGeo = new THREE.SphereGeometry(0.056, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        const lidGeo = new THREE.SphereGeometry(0.054, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55);
 
         const attachEyelid = (eyeBone: THREE.Bone, surfaceOffsetZ: number) => {
           const wp = new THREE.Vector3();
           eyeBone.getWorldPosition(wp);
-          bodyMotionGroup.worldToLocal(wp);
+          stageGroup.worldToLocal(wp);
           const pivot = new THREE.Group();
-          pivot.position.set(wp.x, wp.y + 0.032, wp.z + surfaceOffsetZ * scale);
+          pivot.position.set(wp.x, wp.y + 0.03, wp.z + surfaceOffsetZ * scale);
           const mesh = new THREE.Mesh(lidGeo, lidMat);
-          mesh.position.set(0, -0.032, 0);
+          mesh.position.set(0, -0.03, 0);
           mesh.scale.set(1.05, 1.0, 0.42);
           pivot.add(mesh);
           pivot.scale.set(1, 0.01, 1);
           pivot.visible = false;
-          bodyMotionGroup.add(pivot);
+          stageGroup.add(pivot);
           return pivot;
         };
 
@@ -344,7 +416,7 @@ export function mountContactMascot3D(
     }
   );
 
-  // GSAP ScrollTrigger scrubbed to #contact
+  // Scroll progress & velocity binding (never rotates body sideways)
   let scrollProgress = 0.5;
   let scrollVelocity = 0;
   let dampedVelocity = 0;
@@ -356,11 +428,10 @@ export function mountContactMascot3D(
     scrub: true,
     onUpdate: (self) => {
       scrollProgress = self.progress;
-      scrollVelocity = THREE.MathUtils.clamp(Math.abs(self.getVelocity()) / 900, 0, 2.2);
+      scrollVelocity = THREE.MathUtils.clamp(Math.abs(self.getVelocity()) / 900, 0, 2.0);
     },
   });
 
-  // Hover & click over the mascot triggers / boosts the friendly "wave goodbye" gesture
   let isHoveringCard = false;
   let clickWaveUntil = 0;
   const clock = new THREE.Clock();
@@ -378,21 +449,7 @@ export function mountContactMascot3D(
   container.addEventListener('pointerleave', onLeave);
   container.addEventListener('click', onClick);
 
-  // Cursor look-at tracking
-  const pointerNdc = { x: -0.15, y: 0.04 };
-  let smoothLookYaw = -0.1;
-  let smoothLookPitch = 0;
-
-  const onPointerMove = (e: PointerEvent) => {
-    const rect = container.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    pointerNdc.x = THREE.MathUtils.clamp((e.clientX - cx) / (window.innerWidth * 0.45), -1, 1);
-    pointerNdc.y = THREE.MathUtils.clamp((e.clientY - cy) / (window.innerHeight * 0.45), -1, 1);
-  };
-  window.addEventListener('pointermove', onPointerMove, { passive: true });
-
-  // Randomized natural eye blink timer every 2.5–4.5s (70ms fast close, 110ms smooth open + double-blinks)
+  // Periodic natural eye blinking every 2.5–4.5s
   let nextBlinkAt = 2.5;
   let blinkPhase = 0;
   let blinkTimer = 0;
@@ -471,7 +528,7 @@ export function mountContactMascot3D(
   let curLKnee = 0;
   let curRHip = 0;
   let curRKnee = 0;
-  let curWaveBlend = 0.85;
+  let curWaveBlend = 1.0;
 
   const animate = () => {
     rafId = window.requestAnimationFrame(animate);
@@ -487,58 +544,32 @@ export function mountContactMascot3D(
       return;
     }
 
-    // 1. Strictly lock the central "D" body, face, and front arrow bones to their exact bind pose
+    if (mixer) {
+      mixer.update(dt);
+    }
+
+    // 1. FORCIBLY FREEZE ALL CENTRAL BODY / SPINE / HIP / ROOT BONES TO EXACT BIND POSE EVERY FRAME!
+    // And keep stageGroup 100% upright & facing straight forward (0, 0, 0) — ZERO logo twisting!
+    stageGroup.rotation.set(0, 0, 0);
+    stageGroup.position.set(0, BASE_Y_OFFSET, 0);
     for (const locked of mapped.lockedBody) {
       locked.bone.quaternion.copy(locked.restQuat);
       locked.bone.position.copy(locked.restPos);
     }
 
-    // 2. Smoothly damp scroll velocity so walk settles seamlessly into grounded stance
+    // 2. Smoothly bind subtle in-place leg step & wave speed to scroll progress/velocity
     scrollVelocity = THREE.MathUtils.lerp(scrollVelocity, 0, Math.min(1, dt * 5.5));
     dampedVelocity = THREE.MathUtils.lerp(dampedVelocity, scrollVelocity, Math.min(1, dt * 6.5));
 
-    // Walk-in phase as user scrolls into CTA (0.05 -> 0.42), then grounded stance facing the user
-    const walkInFactor = 1 - THREE.MathUtils.smoothstep(scrollProgress, 0.30, 0.44);
-    const inCtaZone = THREE.MathUtils.smoothstep(scrollProgress, 0.24, 0.44);
+    const entryStep = 1 - THREE.MathUtils.smoothstep(scrollProgress, 0.30, 0.46);
+    const stepIntensity = reduced ? 0 : THREE.MathUtils.clamp(dampedVelocity * 0.9 + entryStep * 0.45, 0, 1);
+    walkPhase += dt * (2.6 + stepIntensity * 4.2) * (0.22 + stepIntensity * 0.78);
 
-    const activeWalkSpeed = reduced ? 0 : Math.min(1.35, dampedVelocity * 1.1 + walkInFactor * 0.55);
-    const walkWeight = reduced ? 0 : THREE.MathUtils.clamp(activeWalkSpeed * 1.05, 0, 1);
-
-    walkPhase += dt * (2.8 + activeWalkSpeed * 5.0) * walkWeight;
-
-    // Walk forward into frame along +Z, settling cleanly centered facing the user
-    const walkInZ = reduced ? 0 : THREE.MathUtils.lerp(-0.62, 0.0, THREE.MathUtils.smoothstep(scrollProgress, 0.06, 0.42));
-    const walkInX = reduced ? 0 : THREE.MathUtils.lerp(0.22, 0.0, THREE.MathUtils.smoothstep(scrollProgress, 0.06, 0.42));
-    const targetFacingY = reduced ? -0.14 : THREE.MathUtils.lerp(-0.08, -0.18, inCtaZone);
-
-    stageGroup.position.x = THREE.MathUtils.lerp(stageGroup.position.x, walkInX, Math.min(1, dt * 6));
-    stageGroup.position.z = THREE.MathUtils.lerp(stageGroup.position.z, walkInZ, Math.min(1, dt * 6));
-    stageGroup.rotation.y = THREE.MathUtils.lerp(stageGroup.rotation.y, targetFacingY, Math.min(1, dt * 5));
-
-    contactShadow.position.x = stageGroup.position.x;
-    contactShadow.position.z = stageGroup.position.z;
-
-    // 3. Body Physics (2x step vertical bounce, gentle hip sway, breathing & subtle cursor tracking)
-    const idleBreath = reduced ? 0 : Math.sin(elapsed * 2.1) * 0.014;
-    const idleSway = reduced ? 0 : Math.sin(elapsed * 1.15) * 0.022;
-    const bounce2x = Math.abs(Math.sin(walkPhase)) * 0.042 * walkWeight;
-    const swayZ = Math.sin(walkPhase) * 0.048 * walkWeight + idleSway * (1 - walkWeight);
-    const counterYaw = -Math.sin(walkPhase) * 0.065 * walkWeight;
-
-    const targetLookYaw = THREE.MathUtils.clamp(pointerNdc.x * 0.2, -0.24, 0.24);
-    const targetLookPitch = THREE.MathUtils.clamp(pointerNdc.y * 0.12, -0.14, 0.14);
-    smoothLookYaw = THREE.MathUtils.lerp(smoothLookYaw, targetLookYaw, Math.min(1, dt * 5));
-    smoothLookPitch = THREE.MathUtils.lerp(smoothLookPitch, targetLookPitch, Math.min(1, dt * 5));
-
-    bodyMotionGroup.position.y = bounce2x + idleBreath;
-    bodyMotionGroup.rotation.z = swayZ - smoothLookYaw * 0.12;
-    bodyMotionGroup.rotation.y = counterYaw + smoothLookYaw;
-    bodyMotionGroup.rotation.x = smoothLookPitch + idleBreath * 0.5;
-
-    // 4. Two-Bone IK Leg Walk Cycle (zero foot sliding)
-    const strideLen = (mapped.thighLen + mapped.calfLen) * 0.34 * walkWeight;
-    const stepLift = (mapped.thighLen + mapped.calfLen) * 0.18 * walkWeight;
-    const baseFootY = -(mapped.thighLen + mapped.calfLen) * 0.96;
+    // Subtle in-place Two-Bone IK leg/sneaker step cycle (hips remain 100% frozen!)
+    const activeLegWeight = reduced ? 0 : THREE.MathUtils.clamp(0.18 + stepIntensity * 0.82, 0, 1);
+    const strideLen = (mapped.thighLen + mapped.calfLen) * 0.24 * activeLegWeight;
+    const stepLift = (mapped.thighLen + mapped.calfLen) * 0.14 * activeLegWeight;
+    const baseFootY = -(mapped.thighLen + mapped.calfLen) * 0.97;
 
     const lIK = solveTwoBoneLegIK(
       mapped.thighLen,
@@ -554,10 +585,10 @@ export function mountContactMascot3D(
     );
 
     const legDamp = Math.min(1, dt * 12);
-    curLHip = THREE.MathUtils.lerp(curLHip, lIK.hipAngle * walkWeight, legDamp);
-    curLKnee = THREE.MathUtils.lerp(curLKnee, lIK.kneeAngle * walkWeight, legDamp);
-    curRHip = THREE.MathUtils.lerp(curRHip, rIK.hipAngle * walkWeight, legDamp);
-    curRKnee = THREE.MathUtils.lerp(curRKnee, rIK.kneeAngle * walkWeight, legDamp);
+    curLHip = THREE.MathUtils.lerp(curLHip, lIK.hipAngle * activeLegWeight, legDamp);
+    curLKnee = THREE.MathUtils.lerp(curLKnee, lIK.kneeAngle * activeLegWeight, legDamp);
+    curRHip = THREE.MathUtils.lerp(curRHip, rIK.hipAngle * activeLegWeight, legDamp);
+    curRKnee = THREE.MathUtils.lerp(curRKnee, rIK.kneeAngle * activeLegWeight, legDamp);
 
     applyWorldDelta(mapped.screenLeftThigh, curLHip, 0, 0);
     applyWorldDelta(mapped.screenLeftCalf, curLKnee, 0, 0);
@@ -567,58 +598,33 @@ export function mountContactMascot3D(
     applyWorldDelta(mapped.screenRightCalf, curRKnee, 0, 0);
     applyWorldDelta(mapped.screenRightFoot, -(curRHip + curRKnee) * 0.5, 0, 0);
 
-    // 5. FIX T-POSE & ARM CLIPPING — Screen-Left Arm (R_Upperarm / R_Forearm / R_Hand):
-    // R_Upperarm points along -X in T-pose. Rotating +60 deg (+1.05 rad) around World +Z drops it
-    // cleanly downward beside the "D", and +0.28 rad around World +Y nudges it slightly forward (+Z)
-    // so it NEVER clips behind the front blue arrows!
-    const leftArmWalkSwing = Math.sin(walkPhase + Math.PI) * 0.34 * walkWeight;
-    const restDownZ = 1.05 + idleBreath * 1.1; // ~60 degrees downward from horizontal T-pose
-    const restForwardY = 0.28; // slightly forward clear of blue arrows
-    const restPitchX = -0.14 + leftArmWalkSwing;
+    // 3. SCREEN-LEFT ARM: Relaxed naturally downward at its side without clipping the blue arrows
+    const subtleLeftSwing = reduced ? 0 : Math.sin(walkPhase + Math.PI) * 0.16 * activeLegWeight;
+    applyWorldDelta(mapped.screenLeftUpperArm, -0.1 + subtleLeftSwing, 0.24, 1.02);
+    applyWorldDelta(mapped.screenLeftForearm, -0.18, 0.14, -0.1);
+    applyWorldDelta(mapped.screenLeftHand, 0, 0, -0.06);
 
-    applyWorldDelta(mapped.screenLeftUpperArm, restPitchX, restForwardY, restDownZ);
-    applyWorldDelta(
-      mapped.screenLeftForearm,
-      -0.22 - Math.max(0, Math.sin(walkPhase + Math.PI - 0.5)) * 0.25 * walkWeight,
-      0.16,
-      -0.12
-    );
-    applyWorldDelta(mapped.screenLeftHand, 0, 0, -0.08);
+    // 4. SCREEN-RIGHT ARM: Raised cleanly at top-right waving side-to-side (with generous headroom)
+    const boostWave = isHoveringCard || elapsed < clickWaveUntil ? 1.25 : 1.0;
+    const waveSpeed = 5.4 + dampedVelocity * 1.4;
+    const targetWave = reduced ? 0 : 1;
+    curWaveBlend = THREE.MathUtils.lerp(curWaveBlend, targetWave, Math.min(1, dt * 6));
 
-    // 6. FRIENDLY "WAVE GOODBYE" ANIMATION — Screen-Right Arm (L_Upperarm / L_Forearm / L_Hand, open side of "D"):
-    // Triggered as welcoming/goodbye loop in CTA section AND boosted on hover/click!
-    const interactiveWave = isHoveringCard || elapsed < clickWaveUntil;
-    // Gentle periodic wave envelope in CTA (waves warmly, pauses briefly, waves again; continuous while hovered/clicked)
-    const periodicLoop = 0.5 + 0.5 * Math.sin(elapsed * 0.85);
-    const autoWaveActive = inCtaZone > 0.35 && periodicLoop > 0.22;
-    const wantWave = !reduced && (interactiveWave || autoWaveActive) ? 1 : 0;
+    const waveAngle = reduced ? 0 : Math.sin(elapsed * waveSpeed) * 0.30 * boostWave * curWaveBlend;
+    const handFollow = reduced ? 0 : Math.sin(elapsed * waveSpeed - 0.46) * 0.34 * boostWave * curWaveBlend;
 
-    curWaveBlend = THREE.MathUtils.lerp(curWaveBlend, wantWave * (1 - walkWeight * 0.55), Math.min(1, dt * 5.5));
+    // Moderate ~36 deg raise (+0.62 rad) so hand waves cleanly beside top-right of "D" with plenty of headroom
+    const rightUpZ = THREE.MathUtils.lerp(-0.98, 0.62, curWaveBlend);
+    const elbowBendZ = THREE.MathUtils.lerp(0.12, 0.38, curWaveBlend) + waveAngle;
 
-    // When not waving (e.g. walking in or reduced motion), rest screen-right arm naturally downward (-1.02 rad around +Z)
-    // When waving, raise screen-right arm upward ~48 deg (+0.84 rad around +Z) beside top-right curve of "D"!
-    const rightDownWalkSwing = Math.sin(walkPhase) * 0.34 * walkWeight;
-    const rightUpZ = THREE.MathUtils.lerp(-1.02 - idleBreath * 1.1, 0.82, curWaveBlend);
-    const rightFwdY = THREE.MathUtils.lerp(-0.22, -0.18, curWaveBlend);
-    const rightPitchX = THREE.MathUtils.lerp(-0.12 + rightDownWalkSwing, -0.06, curWaveBlend);
-
-    // Bend elbow upward (~65-75 deg total) & animate smooth side-to-side wrist/forearm wave with phase follow-through
-    const waveAngle = reduced ? 0 : Math.sin(elapsed * 6.0) * 0.35 * curWaveBlend;
-    const handFollow = reduced ? 0 : Math.sin(elapsed * 6.0 - 0.48) * 0.38 * curWaveBlend;
-    const elbowUpBendZ = THREE.MathUtils.lerp(0.15, 0.44, curWaveBlend) + waveAngle;
-
-    applyWorldDelta(mapped.screenRightUpperArm, rightPitchX, rightFwdY, rightUpZ);
-    applyWorldDelta(mapped.screenRightForearm, -0.1 * curWaveBlend, 0, elbowUpBendZ);
+    applyWorldDelta(mapped.screenRightUpperArm, -0.05, -0.14, rightUpZ);
+    applyWorldDelta(mapped.screenRightForearm, -0.08 * curWaveBlend, 0, elbowBendZ);
     applyWorldDelta(mapped.screenRightHand, 0, 0, handFollow);
 
-    // 7. Natural Randomized Eye Blinking
+    // 5. Periodic Eye Blinking every 2.5–4.5s
     if (!reduced) {
       updateBlink(dt, elapsed);
     }
-
-    // Grounded ContactShadow pulse
-    const shScale = 1 - bounce2x * 2.2;
-    contactShadow.scale.set(shScale, shScale, 1);
 
     renderer!.render(scene, camera);
   };
@@ -635,7 +641,6 @@ export function mountContactMascot3D(
       container.removeEventListener('pointerenter', onEnter);
       container.removeEventListener('pointerleave', onLeave);
       container.removeEventListener('click', onClick);
-      window.removeEventListener('pointermove', onPointerMove);
       shadowGeo.dispose();
       shadowMat.dispose();
       shadowTex.dispose();
