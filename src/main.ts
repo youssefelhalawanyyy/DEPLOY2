@@ -1,7 +1,7 @@
 import './styles/main.css';
 import { SITE_CONFIG } from './config/siteConfig';
 import { mountHeroGlassSphere } from './three/HeroGlassSphere';
-import { mountContactLogo3D } from './three/ContactLogo3D';
+import { mountContactMascot3D } from './three/ContactMascot3D';
 import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
@@ -498,10 +498,14 @@ function bootstrap() {
       : '<span aria-hidden="true">&#10074;&#10074;</span>';
   });
 
-  // 4. Mount Animated 3D DEPLOY GLB Logo in Contact Section
+  // 4. Mount Rigged & IK-Driven 3D DEPLOY Mascot in Contact Section
   const contactLogoHost = document.getElementById('contact-logo-3d-host');
   if (contactLogoHost) {
-    mountContactLogo3D(contactLogoHost, './tripo_convert_7af4e75d-d35f-481b-a036-0626eb162882.glb');
+    mountContactMascot3D(
+      contactLogoHost,
+      contactSection,
+      './tripo_convert_d4ce10d2-55d9-4093-944b-7692ec975245.glb'
+    );
   }
 
   // 5. Animated Results Odometer Counters (reversible & reduced-motion safe)
