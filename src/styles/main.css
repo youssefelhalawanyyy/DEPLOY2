@@ -212,19 +212,28 @@ button {
 }
 
 .nav-audit-btn {
-  padding: 10px 20px;
+  padding: 10px 22px;
   border-radius: 999px;
-  border: 1.5px solid var(--ink-dark);
-  background: var(--yellow);
-  color: var(--ink-dark);
+  border: 1px solid rgba(92, 225, 255, 0.42);
+  background: linear-gradient(180deg, #27b9ea 0%, #156ec4 48%, #0a3c82 100%);
+  color: #ffffff;
   font-weight: 700;
   font-size: 0.88rem;
-  transition: transform 0.18s ease, background-color 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 0 rgba(92, 225, 255, 0.35),
+    0 12px 24px -10px rgba(14, 77, 156, 0.72);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-audit-btn:hover {
-  background: #44d2f7;
+  filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.nav-audit-btn:active {
+  transform: scale(0.95);
 }
 
 .mobile-menu-toggle {
@@ -301,19 +310,45 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 15px 26px;
+  padding: 15px 28px;
   border-radius: 999px;
-  border: 1.5px solid var(--ink-dark);
-  background: var(--yellow);
-  color: var(--ink-dark);
+  border: 1px solid rgba(92, 225, 255, 0.42);
+  background: linear-gradient(180deg, #27b9ea 0%, #156ec4 48%, #0a3c82 100%);
+  color: #ffffff;
   font-weight: 700;
   font-size: 0.95rem;
-  transition: transform 0.18s ease, background-color 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 0 rgba(92, 225, 255, 0.35),
+    0 16px 30px -12px rgba(14, 77, 156, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-yellow-pill:hover {
-  background: #44d2f7;
+  filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.btn-yellow-pill:active {
+  transform: scale(0.95);
+}
+
+.venom-gl-overlay,
+.venom-web-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.venom-gl-overlay {
+  z-index: 540;
+}
+
+.venom-web-overlay {
+  z-index: 541;
 }
 
 .btn-text-cta {

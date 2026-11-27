@@ -6,6 +6,7 @@ import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
+import { initVenomButtons } from './effects/VenomButtons';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -536,6 +537,9 @@ function bootstrap() {
       el.textContent = `${prefix}${val}${suffix}`;
     });
   };
+
+  // 5b. Mount DEPLOY-blue WebGL Venom liquid symbiote effect on primary pill buttons
+  initVenomButtons('.btn-yellow-pill, .nav-audit-btn');
 
   // Reduced motion listener
   const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
