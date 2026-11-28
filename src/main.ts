@@ -7,6 +7,12 @@ import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
 import { renderLinusGalleryModalHTML, initLinusGalleryModal } from './sections/LinusGalleryModal';
 import { mountGridSignalCanvas, initInteractiveSpotlightCards } from './effects/VisualAnimations';
+import {
+  ensureSpeedBlurDefs,
+  renderSpeedingOdometerHTML,
+  updateSpeedingOdometer,
+  bindSpeedingOdometerHover,
+} from './effects/SpeedingText';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -17,40 +23,6 @@ function renderLogoMark(slotId = 'zeroth-logo'): string {
       <img class="brand-logo-img" src="./logo-mark.png" alt="" width="28" height="28" />
     </picture>
   `;
-}
-
-function renderOdometerHTML(valueStr: string): string {
-  // Turns "99.9%", "3×", "4×", "14d" into vertical rolling digit wheels + static punctuation
-  let digitIdx = 0;
-  const chars = Array.from(valueStr);
-  return `<span class="odo-wrap" aria-label="${valueStr}">${chars
-    .map((ch) => {
-      if (ch >= '0' && ch <= '9') {
-        const target = Number(ch);
-        const idx = digitIdx++;
-        const digits = '0123456789'
-          .split('')
-          .map((d) => `<span class="odo-digit">${d}</span>`)
-          .join('');
-        return `<span class="odo-col" aria-hidden="true"><span class="odo-track" data-target-digit="${target}" data-digit-pos="${idx}">${digits}</span></span>`;
-      }
-      return `<span class="odo-static" aria-hidden="true">${ch}</span>`;
-    })
-    .join('')}</span>`;
-}
-
-function updateOdometerContainer(container: Element, progress: number, reduced: boolean): void {
-  const tracks = container.querySelectorAll<HTMLElement>('.odo-track');
-  const p = reduced ? 1 : clamp01(progress);
-  tracks.forEach((track) => {
-    const target = Number(track.dataset.targetDigit || '0');
-    const pos = Number(track.dataset.digitPos || '0');
-    // Slight stagger per digit column so lower-place digits spin smoothly into place
-    const localP = reduced ? 1 : clamp01((p - pos * 0.06) / Math.max(0.25, 1 - pos * 0.06));
-    const eased = 1 - Math.pow(1 - localP, 3);
-    const currentVal = target * eased;
-    track.style.transform = `translate3d(0, -${currentVal.toFixed(4)}em, 0)`;
-  });
 }
 
 function renderWhyNowWords(): string {
@@ -175,7 +147,7 @@ function buildAppHTML(): string {
                 .map(
                   (s) => `
                 <div class="wn-stat-col">
-                  <div class="wn-stat-val">${renderOdometerHTML(s.value)}</div>
+                  <div class="wn-stat-val">${renderSpeedingOdometerHTML(s.value)}</div>
                   <div class="wn-stat-label">${s.label}</div>
                   <p class="wn-stat-source">${s.source}</p>
                 </div>
@@ -215,7 +187,7 @@ function buildAppHTML(): string {
               .map(
                 (m) => `
               <div class="result-metric">
-                <div class="rm-number">${renderOdometerHTML(`${m.prefix || ''}${m.target}${m.suffix}`)}</div>
+                <div class="rm-number">${renderSpeedingOdometerHTML(`${m.prefix || ''}${m.target}${m.suffix}`)}</div>
                 <div class="rm-label">${m.label}</div>
                 <div class="rm-sublabel">${m.sublabel}</div>
               </div>
@@ -413,7 +385,9 @@ function buildAppHTML(): string {
 function bootstrap() {
   const root = document.getElementById('app');
   if (!root) return;
+  ensureSpeedBlurDefs();
   root.innerHTML = buildAppHTML();
+  bindSpeedingOdometerHover(root);
 
   const header = document.getElementById('site-header')!;
   const heroSection = document.getElementById('top')!;
@@ -587,11 +561,11 @@ function bootstrap() {
     mascotIo.observe(contactSection);
   }
 
-  // 5. Scroll-driven Vertical Odometer Rollers for Results & Why-Now stats
+  // 5. Scroll-driven Speeding Text Velocity Rollers for Results & Why-Now stats
   const resultsMetricsGrid = document.getElementById('results-metrics-grid')!;
-  const updateResultsCounters = (progress: number) => {
+  const updateResultsCounters = (progress: number, dt: number) => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    updateOdometerContainer(resultsMetricsGrid, progress, reduced);
+    updateSpeedingOdometer(resultsMetricsGrid, progress, dt, reduced);
   };
 
   // 5b. Lazy-Mount DEPLOY-blue WebGL Venom liquid button effect on pointer devices (skip on touch phones for 0 GPU overhead)
@@ -762,7 +736,7 @@ function bootstrap() {
     });
     whyNowStats.style.opacity = smoothStatsVis.toFixed(3);
     whyNowStats.style.transform = `translate3d(0, ${((1 - smoothStatsVis) * 20).toFixed(1)}px, 0)`;
-    updateOdometerContainer(whyNowStats, smoothStatsVis, reduced);
+    updateSpeedingOdometer(whyNowStats, smoothStatsVis, dt, reduced);
 
     // C. 9-Beat Scroll Story
     storyCtrl.update(smoothStoryP);
@@ -770,8 +744,8 @@ function bootstrap() {
     // D. Services / Portfolio Scroll-Scrubbed FlexCarousel
     servicesCtrl.update(smoothServP);
 
-    // E. Results vertical odometer rollers
-    updateResultsCounters(smoothResP);
+    // E. Results Speeding Text velocity rollers
+    updateResultsCounters(smoothResP, dt);
 
     // F. Process 4-Step Curve
     processCtrl.update(smoothProcP);

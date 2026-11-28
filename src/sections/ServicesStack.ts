@@ -1,4 +1,5 @@
 import { mountFlexCarousel, type FlexCarouselController, type FlexCarouselItem } from '../three/FlexCarouselEngine';
+import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
 
 export interface PortfolioScreen {
   label: string;
@@ -418,10 +419,10 @@ export function renderServicesHTML(): string {
           <div class="pf-inline-metrics" id="pf-active-metrics">
             ${first.metrics
               .map(
-                (m) => `
-              <div class="pf-inline-metric">
-                <strong>${m.value}</strong>
-                <span>${m.label}</span>
+                (m, idx) => `
+              <div class="pf-inline-metric" data-metric-slot="${idx}">
+                <strong class="pf-metric-val" data-spd-value="${m.value}">${m.value}</strong>
+                <span class="pf-metric-lbl">${m.label}</span>
               </div>
             `
               )
@@ -484,6 +485,7 @@ export function initServicesStack(section: HTMLElement): ServicesController {
     const count = PORTFOLIO_PROJECTS.length;
     const clamped = ((nextIdx % count) + count) % count;
     if (clamped === activeIdx && !moveFocus) return;
+    const dir: 1 | -1 = clamped >= activeIdx ? 1 : -1;
     activeIdx = clamped;
     const project = PORTFOLIO_PROJECTS[clamped];
 
@@ -493,6 +495,8 @@ export function initServicesStack(section: HTMLElement): ServicesController {
       tab.tabIndex = isSelected ? 0 : -1;
       if (isSelected) {
         if (moveFocus) tab.focus({ preventScroll: true });
+        const numBadge = tab.querySelector<HTMLElement>('.pf-tab-num');
+        streakRevealElement(numBadge, { axis: 'y', durationMs: 320 });
         try {
           tab.scrollIntoView({ block: 'nearest', inline: 'nearest', container: 'nearest' } as ScrollIntoViewOptions);
         } catch {
@@ -501,27 +505,49 @@ export function initServicesStack(section: HTMLElement): ServicesController {
       }
     });
 
-    if (codeEl) codeEl.textContent = project.code;
-    if (statusEl) statusEl.textContent = project.statusPill;
+    morphSpeedingText(codeEl, project.code, { axis: 'x', direction: dir, durationMs: 360 });
+    morphSpeedingText(statusEl, project.statusPill, { axis: 'x', direction: dir, durationMs: 380, delayMs: 25 });
     if (titleEl) titleEl.textContent = project.title;
     if (summaryEl) summaryEl.textContent = project.summary;
     if (viewMoreBtn) viewMoreBtn.dataset.openLrProject = String(clamped);
     if (ctaLabelEl) ctaLabelEl.textContent = project.ctaLabel;
     if (metricsHost) {
-      metricsHost.innerHTML = project.metrics
-        .map(
-          (m) => `
-          <div class="pf-inline-metric">
-            <strong>${m.value}</strong>
-            <span>${m.label}</span>
-          </div>
-        `
-        )
-        .join('');
+      const valEls = Array.from(metricsHost.querySelectorAll<HTMLElement>('.pf-metric-val'));
+      const lblEls = Array.from(metricsHost.querySelectorAll<HTMLElement>('.pf-metric-lbl'));
+      project.metrics.forEach((m, i) => {
+        if (valEls[i]) {
+          morphSpeedingText(valEls[i], m.value, {
+            axis: 'x',
+            direction: dir,
+            durationMs: 400,
+            delayMs: i * 40,
+          });
+        }
+        if (lblEls[i]) {
+          lblEls[i].textContent = m.label;
+        }
+      });
     }
 
     flexCtrl?.setItems(toCarouselItems(project), latestScrollP);
   };
+
+  // Streak-reveal portfolio metrics and tab numbers when #services first enters the viewport
+  const entryIo = new IntersectionObserver(
+    (entries) => {
+      if (entries[0]?.isIntersecting) {
+        entryIo.disconnect();
+        section.querySelectorAll<HTMLElement>('.pf-metric-val').forEach((el, idx) => {
+          streakRevealElement(el, { axis: 'x', delayMs: idx * 55, durationMs: 440 });
+        });
+        section.querySelectorAll<HTMLElement>('.pf-tab-num').forEach((el, idx) => {
+          streakRevealElement(el, { axis: 'y', delayMs: idx * 45, durationMs: 360 });
+        });
+      }
+    },
+    { threshold: 0.12 }
+  );
+  entryIo.observe(section);
 
   tabs.forEach((tab, idx) => {
     tab.addEventListener('click', () => selectTab(idx, false));

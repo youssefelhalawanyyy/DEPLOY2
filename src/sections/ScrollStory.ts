@@ -1,5 +1,6 @@
 import { SITE_CONFIG } from '../config/siteConfig';
 import type { DeployLogo3DController } from '../three/DeployLogo3D';
+import { morphSpeedingText } from '../effects/SpeedingText';
 
 export interface ScrollStoryController {
   update: (progress: number) => void;
@@ -253,6 +254,8 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   storyIo.observe(section);
 
   const query = SITE_CONFIG.story.queryText;
+  let lastRank = 47;
+  const lastPillStates: boolean[] = diagPills.map(() => false);
 
   // Beat windows in normalized progress 0..1:
   // 0.00 - 0.13: Beat 01 (The Question)
@@ -358,17 +361,24 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     mainCard.classList.toggle('is-fixed', isFixed);
     mainCard.classList.toggle('is-dimmed-by-ai', aiPushDown > 0.35);
 
-    // Diagnostic pills visibility (Beats 03-04: 0.185..0.40)
+    // Diagnostic pills visibility (Beats 03-04: 0.185..0.40) — flip with Speeding Text horizontal blur
     const diagVis = smooth(invLerp(0.185, 0.215, p)) * (1 - smooth(invLerp(0.385, 0.405, p)));
     diagContainer.style.opacity = diagVis.toFixed(3);
     diagPills.forEach((pill, idx) => {
       const threshold = 0.2 + idx * 0.22;
       const flipped = fixSweep >= threshold && idx < 3;
-      pill.textContent = flipped ? pill.dataset.after! : pill.dataset.before!;
+      if (flipped !== lastPillStates[idx]) {
+        lastPillStates[idx] = flipped;
+        morphSpeedingText(pill, flipped ? pill.dataset.after! : pill.dataset.before!, {
+          axis: 'x',
+          direction: flipped ? 1 : -1,
+          durationMs: 320,
+        });
+      }
       pill.classList.toggle('is-fixed', flipped);
     });
 
-    // Beat 05-06: Rank countdown 47 -> 2 -> 1
+    // Beat 05-06: Rank countdown 47 -> 2 -> 1 with Speeding Text vertical motion blur
     let currentRank = 47;
     if (p >= 0.39 && p < 0.51) {
       const climbT = smooth(invLerp(0.39, 0.50, p));
@@ -376,11 +386,15 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     } else if (p >= 0.51) {
       currentRank = 1;
     }
-    mainNum.textContent = String(currentRank);
-    ghostAbove1.textContent = String(Math.max(1, currentRank - 1));
-    ghostAbove2.textContent = String(Math.max(1, currentRank - 2));
-    ghostBelow1.textContent = String(currentRank + 1);
-    ghostBelow2.textContent = String(currentRank + 2);
+    if (currentRank !== lastRank) {
+      const dir: 1 | -1 = currentRank < lastRank ? 1 : -1;
+      lastRank = currentRank;
+      morphSpeedingText(mainNum, String(currentRank), { axis: 'y', direction: dir, durationMs: 280 });
+      morphSpeedingText(ghostAbove1, String(Math.max(1, currentRank - 1)), { axis: 'y', direction: dir, durationMs: 260 });
+      morphSpeedingText(ghostAbove2, String(Math.max(1, currentRank - 2)), { axis: 'y', direction: dir, durationMs: 260 });
+      morphSpeedingText(ghostBelow1, String(currentRank + 1), { axis: 'y', direction: dir, durationMs: 260 });
+      morphSpeedingText(ghostBelow2, String(currentRank + 2), { axis: 'y', direction: dir, durationMs: 260 });
+    }
 
     // Beat 07-08: AI Overview box descends above #1
     const aiIn = smooth(invLerp(0.58, 0.625, p));

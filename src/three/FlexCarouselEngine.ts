@@ -283,6 +283,8 @@ export function mountFlexCarousel(
   const reelEls = Array.from(captionEl.querySelectorAll<HTMLElement>('.flex-carousel__reel'));
 
   let currentItems = opts.items.slice();
+  let prevDigits = '';
+  const reelBlurTimers: number[] = [0, 0];
 
   const updateCaptionDOM = (index: number, focusOpen: boolean) => {
     const item = currentItems[index] || currentItems[0];
@@ -292,9 +294,22 @@ export function mountFlexCarousel(
     subtitleEl.hidden = !item.subtitle;
     totalCountEl.textContent = String(currentItems.length).padStart(2, '0');
     const digits = String(index + 1).padStart(2, '0');
+    const isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     reelEls.forEach((reel, idx) => {
+      const changed = prevDigits.length === 2 && prevDigits[idx] !== digits[idx];
       reel.style.transform = `translateY(${-Number(digits[idx] || 0) * 10}%)`;
+      if (changed && !isReduced) {
+        window.clearTimeout(reelBlurTimers[idx]);
+        reel.dataset.blurY = '3';
+        reelBlurTimers[idx] = window.setTimeout(() => {
+          reel.dataset.blurY = '1';
+          reelBlurTimers[idx] = window.setTimeout(() => {
+            delete reel.dataset.blurY;
+          }, 130);
+        }, 170);
+      }
     });
+    prevDigits = digits;
     if (focusOpen) countWrapEl.setAttribute('data-hidden', '');
     else countWrapEl.removeAttribute('data-hidden');
     liveEl.textContent = `${item.title || item.alt || 'Screen'}, ${index + 1} of ${currentItems.length}`;

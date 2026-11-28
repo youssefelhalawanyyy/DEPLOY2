@@ -5694,3 +5694,243 @@ dialog::backdrop {
     top: auto;
   }
 }
+
+/* ============================================================
+   SPEEDING TEXT — ANISOTROPIC MOTION BLUR NUMBERS & METRICS
+   ============================================================ */
+:root {
+  --speed-spring-easing: linear(
+    0,
+    0.029 1.6%,
+    0.123 3.5%,
+    0.651 10.6%,
+    0.922 15.1%,
+    1.077 19.1%,
+    1.135 22.4%,
+    1.145 25.4%,
+    1.118 29.5%,
+    1.031 38.6%,
+    0.992 46.2%,
+    0.985 53.6%,
+    0.998 68.5%,
+    1
+  );
+}
+
+.speed-blur-defs {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Opt in to directional motion-blur filters only when user allows motion */
+@media (prefers-reduced-motion: no-preference) {
+  [data-blur-x='1'] { filter: url(#spd-blur-x-1); }
+  [data-blur-x='2'] { filter: url(#spd-blur-x-2); }
+  [data-blur-x='3'] { filter: url(#spd-blur-x-3); }
+  [data-blur-x='4'] { filter: url(#spd-blur-x-4); }
+  [data-blur-x='5'] { filter: url(#spd-blur-x-5); }
+
+  [data-blur-y='1'] { filter: url(#spd-blur-y-1); }
+  [data-blur-y='2'] { filter: url(#spd-blur-y-2); }
+  [data-blur-y='3'] { filter: url(#spd-blur-y-3); }
+  [data-blur-y='4'] { filter: url(#spd-blur-y-4); }
+  [data-blur-y='5'] { filter: url(#spd-blur-y-5); }
+}
+
+/* Speeding Odometer Reels (99.9%, 3×, 4×, 14d) */
+.spd-odo-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.spd-odo-col {
+  display: inline-block;
+  height: 1.06em;
+  overflow: hidden;
+  vertical-align: top;
+  padding-inline: 0.015em;
+  margin-inline: -0.015em;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12% 88%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 12% 88%, transparent 100%);
+}
+
+.spd-odo-track {
+  display: flex;
+  flex-direction: column;
+  transform-origin: center top;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spd-odo-track.is-streaking {
+    text-shadow:
+      0 0.14em 0.22em rgba(34, 193, 236, 0.34),
+      0 -0.14em 0.22em rgba(255, 255, 255, 0.22);
+  }
+}
+
+.spd-odo-digit {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+.spd-odo-static {
+  display: inline-block;
+  line-height: 1;
+  transform-origin: left baseline;
+}
+
+/* Twin-Layer Directional Whip + Physics Spring Settle (Tabs, Ranks, Metrics, Steps) */
+.spd-swap-stage {
+  --spd-dur: 380ms;
+  --spd-dir: 1;
+  display: inline-grid;
+  align-items: baseline;
+  vertical-align: baseline;
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+
+.spd-swap-out,
+.spd-swap-in {
+  grid-area: 1 / 1;
+  display: inline-block;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spd-swap-out {
+    transition:
+      transform calc(var(--spd-dur) * 0.56) cubic-bezier(0.4, 0, 0.85, 0.25),
+      opacity calc(var(--spd-dur) * 0.48) ease-out;
+  }
+
+  /* Fallback cubic-bezier first, then linear() spring for transform ONLY (never bounce opacity) */
+  .spd-swap-in {
+    transition-property: transform, opacity;
+    transition-duration: var(--spd-dur), calc(var(--spd-dur) * 0.52);
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-out;
+    transition-timing-function: var(--speed-spring-easing), ease-out;
+  }
+
+  .spd-swap-stage.is-axis-x .spd-swap-out.is-exiting {
+    opacity: 0;
+    transform: translate3d(calc(var(--spd-dir) * -54%), 0, 0) skewX(calc(var(--spd-dir) * -16deg)) scaleX(1.2);
+  }
+
+  .spd-swap-stage.is-axis-x .spd-swap-in.is-entering {
+    opacity: 0;
+    transform: translate3d(calc(var(--spd-dir) * 58%), 0, 0) skewX(calc(var(--spd-dir) * -18deg)) scaleX(1.24);
+    transition: none;
+  }
+
+  .spd-swap-stage.is-axis-y .spd-swap-out.is-exiting {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--spd-dir) * -72%), 0) scaleY(1.26) scaleX(0.92);
+  }
+
+  .spd-swap-stage.is-axis-y .spd-swap-in.is-entering {
+    opacity: 0;
+    transform: translate3d(0, calc(var(--spd-dir) * 76%), 0) scaleY(1.28) scaleX(0.92);
+    transition: none;
+  }
+
+  .spd-is-streaming {
+    display: inline-block;
+    transition: transform 90ms cubic-bezier(0.22, 1, 0.36, 1);
+    text-shadow: 0 0.08em 0.18em rgba(34, 193, 236, 0.32);
+  }
+
+  /* Entrance Speed-Streak Reveal */
+  .spd-streak-prep-x {
+    opacity: 0;
+    display: inline-block;
+    transform: translate3d(-44%, 0, 0) skewX(-16deg) scaleX(1.2);
+    transition: none !important;
+  }
+
+  .spd-streak-prep-y {
+    opacity: 0;
+    display: inline-block;
+    transform: translate3d(0, 68%, 0) scaleY(1.25);
+    transition: none !important;
+  }
+
+  .spd-streak-active {
+    display: inline-block;
+    opacity: 1;
+    transform: translate3d(0, 0, 0) skewX(0deg) scale(1);
+    transition-property: transform, opacity;
+    transition-duration: var(--spd-dur, 420ms), calc(var(--spd-dur, 420ms) * 0.5);
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-out;
+    transition-timing-function: var(--speed-spring-easing), ease-out;
+  }
+}
+
+/* Process Section Live Speeding Step Counter HUD */
+.process-live-counter {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(12, 12, 13, 0.12);
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.plc-num-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.plc-active-num {
+  font-size: clamp(2.1rem, 3.2vw, 2.9rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--ink-dark);
+  min-width: 1.35em;
+}
+
+.plc-total {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted-light);
+}
+
+.plc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.plc-step-name {
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink-dark);
+  line-height: 1.15;
+}
+
+.plc-step-time {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #156ec4;
+}
+
+.ps-num,
+.ps-time {
+  display: inline-block;
+}

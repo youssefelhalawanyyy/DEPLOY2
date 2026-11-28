@@ -1,4 +1,5 @@
 import { SITE_CONFIG } from '../config/siteConfig';
+import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
 
 export interface ProcessController {
   update: (progress: number) => void;
@@ -30,6 +31,18 @@ export function renderProcessHTML(): string {
               ${process.titleLine1}<br />${process.titleLine2}
             </h2>
             <p class="section-lead">${process.subtitle}</p>
+
+            <!-- Live Speeding Text Step Counter synced to engineering curve -->
+            <div class="process-live-counter" aria-live="polite">
+              <div class="plc-num-row">
+                <span class="plc-active-num" id="proc-speed-num" data-spd-value="${process.steps[0].num}">${process.steps[0].num}</span>
+                <span class="plc-total">/ 0${process.steps.length}</span>
+              </div>
+              <div class="plc-meta">
+                <strong class="plc-step-name" id="proc-speed-title" data-spd-value="${process.steps[0].title}">${process.steps[0].title}</strong>
+                <span class="plc-step-time" id="proc-speed-time" data-spd-value="${process.steps[0].timeframe}">${process.steps[0].timeframe}</span>
+              </div>
+            </div>
           </div>
 
           <div class="process-diagram-wrap">
@@ -131,16 +144,44 @@ export function renderProcessHTML(): string {
 }
 
 export function initProcessDiagram(section: HTMLElement): ProcessController {
+  const { process } = SITE_CONFIG;
   const livePath = section.querySelector<SVGPathElement>('.process-live-path');
   const headDot = section.querySelector<SVGCircleElement>('.process-head-dot');
   const stepCards = Array.from(section.querySelectorAll<HTMLElement>('.process-step-card'));
   const stepDots = Array.from(section.querySelectorAll<SVGGElement>('.process-node-g'));
   const dipNote = section.querySelector<HTMLElement>('.process-dip-note');
 
+  const speedNumEl = section.querySelector<HTMLElement>('#proc-speed-num');
+  const speedTitleEl = section.querySelector<HTMLElement>('#proc-speed-title');
+  const speedTimeEl = section.querySelector<HTMLElement>('#proc-speed-time');
+
+  const revealedStates = NODE_ANCHORS.map(() => false);
+  let activeStepIdx = 0;
+
   const totalLen = livePath ? livePath.getTotalLength() : 1000;
   if (livePath) {
     livePath.style.strokeDasharray = `${totalLen}`;
     livePath.style.strokeDashoffset = `${totalLen}`;
+  }
+
+  // Mobile cards: streak step numbers when scrolled into view
+  const mobileCards = Array.from(section.querySelectorAll<HTMLElement>('.process-mobile-card'));
+  if (mobileCards.length > 0) {
+    const mobIo = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            mobIo.unobserve(entry.target);
+            const numEl = entry.target.querySelector<HTMLElement>('.ps-num');
+            const timeEl = entry.target.querySelector<HTMLElement>('.ps-time');
+            streakRevealElement(numEl, { axis: 'x', durationMs: 380 });
+            streakRevealElement(timeEl, { axis: 'x', delayMs: 60, durationMs: 380 });
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+    mobileCards.forEach((card) => mobIo.observe(card));
   }
 
   const update = (rawP: number) => {
@@ -154,11 +195,33 @@ export function initProcessDiagram(section: HTMLElement): ProcessController {
       headDot.setAttribute('fill', p > 0.88 ? '#22c1ec' : '#f5f4ef');
     }
 
+    let nextActiveIdx = 0;
     NODE_ANCHORS.forEach((anchor, i) => {
       const revealed = p >= anchor.threshold;
+      if (revealed) nextActiveIdx = i;
+
+      if (revealed !== revealedStates[i]) {
+        revealedStates[i] = revealed;
+        if (revealed && stepCards[i]) {
+          const numEl = stepCards[i].querySelector<HTMLElement>('.ps-num');
+          const timeEl = stepCards[i].querySelector<HTMLElement>('.ps-time');
+          streakRevealElement(numEl, { axis: 'x', durationMs: 400 });
+          streakRevealElement(timeEl, { axis: 'x', delayMs: 55, durationMs: 380 });
+        }
+      }
+
       stepCards[i]?.classList.toggle('is-revealed', revealed);
       stepDots[i]?.classList.toggle('is-revealed', revealed);
     });
+
+    if (nextActiveIdx !== activeStepIdx) {
+      const dir: 1 | -1 = nextActiveIdx > activeStepIdx ? 1 : -1;
+      activeStepIdx = nextActiveIdx;
+      const step = process.steps[activeStepIdx];
+      morphSpeedingText(speedNumEl, step.num, { axis: 'y', direction: dir, durationMs: 360 });
+      morphSpeedingText(speedTitleEl, step.title, { axis: 'x', direction: dir, durationMs: 360 });
+      morphSpeedingText(speedTimeEl, step.timeframe, { axis: 'x', direction: dir, durationMs: 380, delayMs: 30 });
+    }
 
     if (dipNote) {
       dipNote.classList.toggle('is-revealed', p >= 0.56);

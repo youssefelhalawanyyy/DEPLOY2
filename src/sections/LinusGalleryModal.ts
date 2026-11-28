@@ -1,5 +1,6 @@
 import { PORTFOLIO_PROJECTS, type PortfolioProject, type PortfolioScreen } from './ServicesStack';
 import { SITE_CONFIG } from '../config/siteConfig';
+import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
 
 export interface LinusGalleryController {
   openProject: (projectIdx: number) => void;
@@ -212,7 +213,7 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
         <!-- Live Interactive Print Inspector Readout (syncs on wall hover/focus) -->
         <div class="h51-stagger h51-s5 h51-inspector-card" id="h51-inspector-card">
           <div class="h51-insp-top">
-            <span class="h51-insp-badge" id="h51-insp-badge">PRINT 01 / ${pad2(project.screens.length)} &middot; ${firstScreen.tag}</span>
+            <span class="h51-insp-badge" id="h51-insp-badge">PRINT <span id="h51-insp-num" data-spd-value="01">01</span> / ${pad2(project.screens.length)} &middot; <span id="h51-insp-tag" data-spd-value="${firstScreen.tag}">${firstScreen.tag}</span></span>
             <button type="button" class="h51-insp-zoom-btn" id="h51-insp-open" data-print-idx="0">
               Expand print &#8599;
             </button>
@@ -401,16 +402,23 @@ export function initLinusGalleryModal(
   zoomPrev?.addEventListener('click', () => openZoom(currentZoomIdx - 1));
   zoomNext?.addEventListener('click', () => openZoom(currentZoomIdx + 1));
 
+  let lastInspectedIdx = 0;
+
   const updateInspector = (screenIdx: number) => {
     const project = PORTFOLIO_PROJECTS[currentProjectIdx];
     if (!project) return;
     const scr = project.screens[screenIdx];
-    if (!scr) return;
-    const badge = contentHost.querySelector<HTMLElement>('#h51-insp-badge');
+    if (!scr || screenIdx === lastInspectedIdx) return;
+    const dir: 1 | -1 = screenIdx > lastInspectedIdx ? 1 : -1;
+    lastInspectedIdx = screenIdx;
+
+    const numEl = contentHost.querySelector<HTMLElement>('#h51-insp-num');
+    const tagEl = contentHost.querySelector<HTMLElement>('#h51-insp-tag');
     const title = contentHost.querySelector<HTMLElement>('#h51-insp-title');
     const desc = contentHost.querySelector<HTMLElement>('#h51-insp-desc');
     const openBtn = contentHost.querySelector<HTMLElement>('#h51-insp-open');
-    if (badge) badge.textContent = `PRINT ${pad2(screenIdx + 1)} / ${pad2(project.screens.length)} · ${scr.tag}`;
+    morphSpeedingText(numEl, pad2(screenIdx + 1), { axis: 'y', direction: dir, durationMs: 320 });
+    morphSpeedingText(tagEl, scr.tag, { axis: 'x', direction: dir, durationMs: 340 });
     if (title) title.textContent = scr.label;
     if (desc) desc.textContent = scr.caption;
     if (openBtn) openBtn.dataset.printIdx = String(screenIdx);
@@ -487,6 +495,7 @@ export function initLinusGalleryModal(
   const renderProject = (idx: number) => {
     const count = PORTFOLIO_PROJECTS.length;
     currentProjectIdx = ((idx % count) + count) % count;
+    lastInspectedIdx = 0;
     closeZoom();
     contentHost.innerHTML = buildHero51ProjectMarkup(currentProjectIdx, wallPaused);
     dialog.scrollTop = 0;
@@ -495,6 +504,9 @@ export function initLinusGalleryModal(
     curTiltX = 0;
     curTiltY = 0;
     bindWallInteractions();
+    contentHost.querySelectorAll<HTMLElement>('.h51-kpi-card strong').forEach((el, kIdx) => {
+      streakRevealElement(el, { axis: 'x', delayMs: 80 + kIdx * 55, durationMs: 420 });
+    });
   };
 
   const openProject = (idx: number) => {
