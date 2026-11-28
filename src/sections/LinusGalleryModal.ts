@@ -100,32 +100,24 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
   const nextProject = PORTFOLIO_PROJECTS[nextIdx];
   const firstScreen = project.screens[0];
 
-  const col1 = buildWallColumnItems(project, 0, 5);
-  const col2 = buildWallColumnItems(project, 2, 5);
-  const col3 = buildWallColumnItems(project, 4, 5);
+  const col1 = buildWallColumnItems(project, 0, 9);
+  const col2 = buildWallColumnItems(project, 3, 9);
+  const col3 = buildWallColumnItems(project, 6, 9);
 
   const renderPrintCard = (item: { screen: PortfolioScreen; sIdx: number }, isClone: boolean) => `
     <button
       type="button"
       class="h51-print-frame ${project.renderMode === 'poster' ? 'is-poster-print' : 'is-wide-print'}"
       data-print-idx="${item.sIdx}"
-      ${isClone ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Inspect print ${pad2(item.sIdx + 1)}: ${item.screen.label}"`}
+      ${isClone ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Inspect screen ${pad2(item.sIdx + 1)}: ${item.screen.label}"`}
     >
-      <div class="h51-print-mat">
-        <div class="h51-print-art">
-          <img
-            src="${item.screen.webp || item.screen.src}"
-            alt="${isClone ? '' : `${project.tabTitle} — ${item.screen.label}`}"
-            loading="lazy"
-            decoding="async"
-            draggable="false"
-          />
-        </div>
-        <div class="h51-print-plaque">
-          <span class="h51-plaque-title">FIG. ${pad2(item.sIdx + 1)} &mdash; ${item.screen.label}</span>
-          <span class="h51-plaque-tag">${item.screen.tag}</span>
-        </div>
-      </div>
+      <img
+        src="${item.screen.webp || item.screen.src}"
+        alt="${isClone ? '' : `${project.tabTitle} — ${item.screen.label}`}"
+        loading="lazy"
+        decoding="async"
+        draggable="false"
+      />
     </button>
   `;
 
@@ -210,12 +202,12 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
             .join('')}
         </div>
 
-        <!-- Live Interactive Print Inspector Readout (syncs on wall hover/focus) -->
+        <!-- Live Interactive Screen Inspector Readout (syncs on wall hover/focus) -->
         <div class="h51-stagger h51-s5 h51-inspector-card" id="h51-inspector-card">
           <div class="h51-insp-top">
-            <span class="h51-insp-badge" id="h51-insp-badge">PRINT <span id="h51-insp-num" data-spd-value="01">01</span> / ${pad2(project.screens.length)} &middot; <span id="h51-insp-tag" data-spd-value="${firstScreen.tag}">${firstScreen.tag}</span></span>
+            <span class="h51-insp-badge" id="h51-insp-badge">SCREEN <span id="h51-insp-num" data-spd-value="01">01</span> / ${pad2(project.screens.length)} &middot; <span id="h51-insp-tag" data-spd-value="${firstScreen.tag}">${firstScreen.tag}</span></span>
             <button type="button" class="h51-insp-zoom-btn" id="h51-insp-open" data-print-idx="0">
-              Expand print &#8599;
+              Full screen &#8599;
             </button>
           </div>
           <strong class="h51-insp-title" id="h51-insp-title">${firstScreen.label}</strong>
@@ -232,18 +224,14 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
         </div>
       </div>
 
-      <!-- Right Column: Gallery Wall of Matted Prints Receding in 3D Perspective -->
+      <!-- Right Stage: Frameless Zero-Gap 3D Perspective Image Ribbon (Pics Only, Unboxed) -->
       <div class="h51-wall-viewport" id="h51-wall-viewport">
-        <div class="h51-wall-spotlight" aria-hidden="true"></div>
         <div class="h51-wall-mask">
           <div class="h51-wall-plane" id="h51-wall-plane">
             ${renderColumn(col1, 1)}
             ${renderColumn(col2, 2)}
             ${renderColumn(col3, 3)}
           </div>
-        </div>
-        <div class="h51-wall-caption-pill" aria-hidden="true">
-          <span>3D PERSPECTIVE GALLERY WALL &middot; HOVER OR CLICK ANY PRINT TO INSPECT</span>
         </div>
       </div>
     </section>

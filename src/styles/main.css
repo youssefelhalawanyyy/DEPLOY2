@@ -3570,18 +3570,16 @@ dialog::backdrop {
 }
 
 /* ============================================================
-   HERO 51 SPLIT LAYOUT: COPY LEFT + RECEDING 3D PRINT WALL RIGHT
+   HERO 51 SPLIT LAYOUT: COPY LEFT + UNBOXED ZERO-GAP 3D IMAGE WALL
    ============================================================ */
 .h51-split-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   min-height: calc(100dvh - 63px);
-  background:
-    radial-gradient(circle at 75% 32%, rgba(34, 193, 236, 0.08), transparent 52%),
-    linear-gradient(180deg, #f8f7f3 0%, #efede6 100%);
-  border-bottom: 1px solid rgba(11, 12, 15, 0.1);
-  overflow: hidden;
+  background: #f6f5f1;
+  border-bottom: 1px solid rgba(11, 12, 15, 0.08);
+  overflow: clip;
 }
 
 .h51-copy-col {
@@ -3590,8 +3588,8 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
-  padding: clamp(32px, 5vw, 64px) clamp(20px, 4vw, 56px);
+  gap: 24px;
+  padding: clamp(36px, 5vw, 68px) clamp(24px, 4.2vw, 64px);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -3678,22 +3676,32 @@ dialog::backdrop {
 .h51-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 0;
+  padding-block: 16px;
+  border-block: 1px solid rgba(11, 12, 15, 0.11);
 }
 
 .h51-kpi-card {
-  background: #ffffff;
-  border: 1px solid rgba(11, 12, 15, 0.1);
-  border-radius: 14px;
-  padding: 13px 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 16px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  box-shadow: 0 6px 18px rgba(11, 12, 15, 0.035);
+  gap: 4px;
+  box-shadow: none;
+}
+
+.h51-kpi-card:first-child {
+  padding-inline-start: 0;
+}
+
+.h51-kpi-card + .h51-kpi-card {
+  border-inline-start: 1px solid rgba(11, 12, 15, 0.1);
 }
 
 .h51-kpi-card strong {
-  font-size: 1.28rem;
+  font-size: 1.32rem;
   font-weight: 850;
   letter-spacing: -0.03em;
   color: #0b0c0f;
@@ -3706,17 +3714,18 @@ dialog::backdrop {
   color: #66676f;
 }
 
-/* Live Print Inspector Card */
+/* Sleek Editorial Live Screen Inspector Readout */
 .h51-inspector-card {
-  background: #0d0f14;
-  color: #f4f4f6;
-  border-radius: 16px;
-  padding: 16px 18px;
-  border: 1px solid rgba(34, 193, 236, 0.25);
-  box-shadow: 0 16px 36px rgba(11, 12, 15, 0.12);
+  background: transparent;
+  color: #0b0c0f;
+  border-radius: 0;
+  padding: 2px 0 2px 16px;
+  border: 0;
+  border-inline-start: 2px solid #1b7fc2;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .h51-insp-top {
@@ -3731,37 +3740,41 @@ dialog::backdrop {
   font-size: 0.64rem;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: var(--yellow);
+  color: #156ec4;
 }
 
 .h51-insp-zoom-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: transparent;
+  border: 1px solid rgba(11, 12, 15, 0.16);
+  color: #0b0c0f;
   font-family: var(--font-mono);
   font-size: 0.62rem;
-  padding: 4px 10px;
+  font-weight: 600;
+  padding: 4px 11px;
   border-radius: 999px;
   cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 .h51-insp-zoom-btn:hover {
-  background: var(--yellow);
-  color: #07121a;
-  border-color: var(--yellow);
+  background: #0b0c0f;
+  color: #ffffff;
+  border-color: #0b0c0f;
 }
 
 .h51-insp-title {
-  font-size: 1.04rem;
-  font-weight: 750;
-  color: #ffffff;
+  font-size: 1.06rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0b0c0f;
 }
 
 .h51-insp-desc {
   margin: 0;
-  font-size: 0.84rem;
-  line-height: 1.5;
-  color: rgba(244, 244, 246, 0.72);
+  font-size: 0.86rem;
+  line-height: 1.54;
+  color: #4f5058;
+  max-width: 54ch;
 }
 
 .h51-hero-actions {
@@ -3812,39 +3825,36 @@ dialog::backdrop {
 }
 
 /* ============================================================
-   RIGHT STAGE: GALLERY WALL OF PRINTS RECEDING IN PERSPECTIVE
+   RIGHT STAGE: UNBOXED ZERO-GAP 3D PERSPECTIVE IMAGE MOSAIC
+   Pics only, zero text inside animation, zero spacing, unboxed
    ============================================================ */
 .h51-wall-viewport {
   position: relative;
-  width: 100%;
-  height: calc(100dvh - 63px);
-  min-height: 580px;
-  overflow: hidden;
-  perspective: 1380px;
-  perspective-origin: 12% 50%;
-  background:
-    radial-gradient(ellipse 75% 65% at 30% 25%, rgba(255, 255, 255, 0.85), transparent 70%),
-    linear-gradient(115deg, #eceae2 0%, #dcd9ce 58%, #cbc7ba 100%);
-  border-left: 1px solid rgba(11, 12, 15, 0.08);
+  inline-size: 100%;
+  block-size: calc(100dvh - 63px);
+  min-block-size: 580px;
+  overflow: clip;
+  perspective: 1550px;
+  perspective-origin: 18% 50%;
+  background: transparent;
+  border: 0;
 }
 
-.h51-wall-spotlight {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 26% 36%, rgba(255, 255, 255, 0.55), transparent 62%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Mask sits on non-focusable wrapper so focus outlines are nicely preserved */
+/* Soft edge blend on non-focusable wrapper so the 3D ribbon floats unboxed in space */
 .h51-wall-mask {
   position: absolute;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 10% 90%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 10% 90%, transparent 100%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 11% 100%),
+    linear-gradient(180deg, transparent 0%, #000 9% 91%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 11% 100%),
+    linear-gradient(180deg, transparent 0%, #000 9% 91%, transparent 100%);
+  mask-composite: intersect;
   transform-style: preserve-3d;
 }
 
@@ -3852,19 +3862,21 @@ dialog::backdrop {
   --tilt-x: 0deg;
   --tilt-y: 0deg;
   display: grid;
-  grid-template-columns: repeat(3, 250px);
-  gap: 24px;
+  grid-template-columns: repeat(3, clamp(235px, 21vw, 315px));
+  gap: 0;
+  margin-block-start: -180px;
   transform-style: preserve-3d;
   transform:
-    translate3d(26px, 0, -55px)
-    rotateY(calc(-26deg + var(--tilt-y)))
-    rotateX(calc(7deg + var(--tilt-x)))
-    rotateZ(1.8deg);
+    translate3d(42px, 0, -40px)
+    rotateY(calc(-24deg + var(--tilt-y)))
+    rotateX(calc(8deg + var(--tilt-x)))
+    rotateZ(-1.6deg);
+  box-shadow: -40px 48px 90px rgba(9, 11, 16, 0.22);
   will-change: transform;
 }
 
 .h51-wall-col {
-  height: 980px;
+  block-size: auto;
   overflow: visible;
   transform-style: preserve-3d;
 }
@@ -3872,21 +3884,21 @@ dialog::backdrop {
 .h51-col-track {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding-bottom: 22px;
+  gap: 0;
+  padding-block-end: 0;
   transform-style: preserve-3d;
   will-change: transform;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .h51-col-1 .h51-col-track {
-    animation: h51-drift-up 36s linear infinite;
+    animation: h51-drift-up 56s linear infinite;
   }
   .h51-col-2 .h51-col-track {
-    animation: h51-drift-down 42s linear infinite;
+    animation: h51-drift-down 64s linear infinite;
   }
   .h51-col-3 .h51-col-track {
-    animation: h51-drift-up 32s linear infinite;
+    animation: h51-drift-up 50s linear infinite;
   }
 }
 
@@ -3904,105 +3916,57 @@ dialog::backdrop {
   to { transform: translate3d(0, 0, 0); }
 }
 
-/* Tactile Matted Museum Gallery Print Frame */
+/* Frameless Zero-Gap Pure Image Tile */
 .h51-print-frame {
+  position: relative;
+  display: block;
+  inline-size: 100%;
   padding: 0;
-  border: 3px solid #16171b;
-  border-radius: 2px;
-  background: #fcfcfa;
-  box-shadow:
-    -18px 24px 36px rgba(12, 13, 18, 0.24),
-    -4px 6px 12px rgba(12, 13, 18, 0.14),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.06);
-  cursor: pointer;
-  text-align: left;
-  transform-style: preserve-3d;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, box-shadow 0.28s ease;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #0a0b0f;
+  box-shadow: none;
+  cursor: zoom-in;
+  overflow: clip;
+  transition: filter 0.28s ease;
+}
+
+.h51-print-frame.is-wide-print {
+  aspect-ratio: 16 / 10;
+}
+
+.h51-print-frame.is-poster-print {
+  aspect-ratio: 4 / 5;
+}
+
+.h51-print-frame img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  object-position: top center;
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.h51-wall-plane:has(.h51-print-frame:hover) .h51-print-frame:not(:hover) {
+  filter: brightness(0.78) saturate(0.92);
 }
 
 .h51-print-frame:hover,
 .h51-print-frame:focus-visible {
-  border-color: #1b7fc2;
-  transform: translate3d(-6px, -4px, 42px) scale(1.03);
-  box-shadow:
-    -28px 36px 54px rgba(12, 13, 18, 0.34),
-    0 0 0 2px rgba(34, 193, 236, 0.55);
-  outline: none;
+  z-index: 2;
+  filter: brightness(1.05);
+  outline: 2px solid #22c1ec;
+  outline-offset: -2px;
 }
 
-.h51-print-mat {
-  padding: 12px 12px 10px;
-  background: #fbfbfa;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.h51-print-art {
-  width: 100%;
-  overflow: hidden;
-  background: #0b0c10;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
-}
-
-.h51-print-frame.is-wide-print .h51-print-art {
-  aspect-ratio: 16 / 10;
-}
-
-.h51-print-frame.is-poster-print .h51-print-art {
-  aspect-ratio: 4 / 5;
-}
-
-.h51-print-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top center;
-  display: block;
-  pointer-events: none;
-}
-
-.h51-print-plaque {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.h51-plaque-title {
-  font-family: var(--font-mono);
-  font-size: 0.54rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #18191e;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.h51-plaque-tag {
-  font-family: var(--font-mono);
-  font-size: 0.48rem;
-  letter-spacing: 0.08em;
-  color: #6c6d75;
-  flex-shrink: 0;
-}
-
-.h51-wall-caption-pill {
-  position: absolute;
-  right: 20px;
-  bottom: 18px;
-  z-index: 5;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: rgba(11, 12, 15, 0.78);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #f4f4f6;
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.09em;
-  pointer-events: none;
+@media (prefers-reduced-motion: no-preference) {
+  .h51-print-frame:hover img,
+  .h51-print-frame:focus-visible img {
+    transform: scale(1.035);
+  }
 }
 
 /* ============================================================
@@ -4417,15 +4381,19 @@ dialog::backdrop {
   }
 
   .h51-wall-viewport {
-    height: 500px;
-    min-height: 500px;
-    border-left: 0;
-    border-top: 1px solid rgba(11, 12, 15, 0.1);
+    block-size: 480px;
+    min-block-size: 480px;
+    border: 0;
+  }
+
+  .h51-wall-mask {
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12% 88%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 12% 88%, transparent 100%);
   }
 
   .h51-wall-plane {
-    grid-template-columns: repeat(3, 210px);
-    gap: 16px;
+    grid-template-columns: repeat(3, 230px);
+    gap: 0;
   }
 
   .h51-transformation-grid {
@@ -4456,11 +4424,14 @@ dialog::backdrop {
     display: none;
   }
 
-  .h51-kpi-grid,
-  .h51-modules-grid,
-  .h51-plates-grid,
-  .h51-plates-grid.is-poster-grid {
+  .h51-kpi-grid {
     grid-template-columns: 1fr 1fr;
+    row-gap: 14px;
+  }
+
+  .h51-kpi-card:nth-child(3) {
+    border-inline-start: 0;
+    padding-inline-start: 0;
   }
 
   .h51-modules-grid,
@@ -4470,13 +4441,13 @@ dialog::backdrop {
   }
 
   .h51-wall-viewport {
-    height: 400px;
-    min-height: 400px;
+    block-size: 390px;
+    min-block-size: 390px;
   }
 
   .h51-wall-plane {
-    grid-template-columns: repeat(3, 155px);
-    gap: 12px;
+    grid-template-columns: repeat(3, 165px);
+    gap: 0;
   }
 
   .h51-container {
