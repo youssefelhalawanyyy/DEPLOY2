@@ -17,6 +17,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/src/styles/welcome.css" />
     <style>
       html,
       body {
@@ -28,7 +29,20 @@
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="deploy-welcome" aria-hidden="true" hidden>
+      <div class="deploy-welcome__brand">
+        <div class="deploy-welcome__mark">
+          <img class="deploy-welcome__fallback" src="./deploy-mark.webp" alt="" width="176" height="176" />
+          <div class="deploy-welcome__face"></div>
+        </div>
+        <span class="deploy-welcome__letter">D</span><span class="deploy-welcome__letter">E</span>
+        <span class="deploy-welcome__letter">P</span><span class="deploy-welcome__letter">L</span>
+        <span class="deploy-welcome__letter">O</span><span class="deploy-welcome__letter">Y</span>
+        <span class="deploy-welcome__letter">.</span>
+      </div>
+    </div>
     <div id="app"></div>
+    <script type="module" src="/src/welcome.ts"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

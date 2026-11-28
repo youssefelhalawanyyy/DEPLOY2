@@ -168,12 +168,12 @@ export function renderScrollStoryHTML(): string {
               </div>
             </div>
 
-            <!-- 4. Bottom Minimal Studio Action Bar -->
+            <!-- Finale footer -->
             <div class="container zm-bottom-interface">
               <span class="zm-bottom-meta">100% CODE OWNERSHIP &middot; ZERO TEMPLATES</span>
-              <button type="button" class="zm-finale-cta" data-open-audit>
-                Start a project <span aria-hidden="true">&rarr;</span>
-              </button>
+              <a class="zm-portfolio-link" href="#services">
+                Explore the portfolio <span aria-hidden="true">&darr;</span>
+              </a>
             </div>
           </div>
         </div>

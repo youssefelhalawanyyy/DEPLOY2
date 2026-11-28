@@ -18,8 +18,6 @@ import {
 import { enhanceScrollTypographyAndSections } from './effects/PageScrollChoreography';
 import type { LightKnotController } from './three/LightKnotHero33';
 
-const impactEmailHint = 'Get a scoped architecture plan in 24 hours.';
-
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 function renderLogoMark(slotId = 'zeroth-logo'): string {
@@ -174,14 +172,14 @@ function buildAppHTML(): string {
       <!-- 4. SERVICES (6 Stacked Sticky Cards with Interactive Engineering Diagrams) -->
       ${renderServicesHTML()}
 
-      <!-- 5. IMPACT / HERO 33: INTEGRATION PLATFORM STAGE + DRAGGABLE KNOT OF LIGHT + EMAIL SIGNUP -->
+      <!-- 5. IMPACT / HERO 33: PRODUCTION SYSTEMS + DRAGGABLE KNOT OF LIGHT -->
       <section id="results" class="results-section h33-impact-section" aria-labelledby="results-heading">
         <div class="h33-ambient-glow" aria-hidden="true"></div>
 
         <div class="container h33-container">
           <div class="h33-hero-runway">
             <div class="h33-hero-grid">
-              <!-- Impact copy and project form -->
+              <!-- Impact copy and case studies link -->
               <div class="h33-copy-col">
                 <div>
                   <div class="h33-status-row" data-impact-reveal>
@@ -207,49 +205,10 @@ function buildAppHTML(): string {
                   </p>
                 </div>
 
-                <!-- Hero 33 Accessible Inline Email Signup -->
                 <div>
-                  <form
-                    id="h33-email-form"
-                    class="h33-email-form"
-                    aria-labelledby="h33-email-label-id"
-                    action="https://formsubmit.co/${cfg.brand.email}"
-                    method="POST"
-                    novalidate
-                    data-impact-reveal="form"
-                  >
-                    <input type="text" name="_honey" tabindex="-1" aria-hidden="true" class="visually-hidden" autocomplete="off" />
-                    <label id="h33-email-label-id" for="h33-work-email" class="h33-email-label">
-                      Work email <span aria-hidden="true">*</span>
-                    </label>
-                    <div class="h33-input-shell" id="h33-input-shell">
-                      <input
-                        type="email"
-                        id="h33-work-email"
-                        name="email"
-                        autocomplete="email"
-                        autocorrect="off"
-                        autocapitalize="none"
-                        spellcheck="false"
-                        enterkeyhint="send"
-                        placeholder="you@company.com"
-                        aria-describedby="h33-email-feedback"
-                        required
-                      />
-                      <button type="submit" class="btn-yellow-pill h33-submit-btn" id="h33-submit-btn">
-                        <span class="h33-submit-label">Start a project</span>
-                        <span aria-hidden="true">&rarr;</span>
-                      </button>
-                    </div>
-                    <div class="h33-form-meta-row">
-                      <span id="h33-email-feedback" class="h33-email-feedback" role="status" aria-live="polite">
-                        ${impactEmailHint}
-                      </span>
-                      <button type="button" class="h33-scope-link" id="h33-open-full-scope">
-                        Configure full scope &#8599;
-                      </button>
-                    </div>
-                  </form>
+                  <a class="h33-deployments-link" href="#live-deployments" data-impact-reveal>
+                    See live deployments <span aria-hidden="true">&darr;</span>
+                  </a>
                 </div>
               </div>
 
@@ -274,7 +233,7 @@ function buildAppHTML(): string {
             `).join('')}
           </div>
 
-          <h3 class="h33-cases-title" data-scroll-copy>Live deployments</h3>
+          <h3 id="live-deployments" class="h33-cases-title" data-scroll-copy>Live deployments</h3>
           <div class="results-cases-grid h33-cases-grid">
             ${cfg.results.cases
               .map(
@@ -671,115 +630,11 @@ function bootstrap() {
     knotIo.observe(knotHostEl);
   }
 
-  // Hero 33 Inline Email Signup Form (validates on blur & submit, clears on input, dispatches to studio email)
-  const h33Form = document.getElementById('h33-email-form') as HTMLFormElement | null;
-  const h33EmailInput = document.getElementById('h33-work-email') as HTMLInputElement | null;
-  const h33InputShell = document.getElementById('h33-input-shell');
-  const h33Feedback = document.getElementById('h33-email-feedback');
-  const h33SubmitBtn = document.getElementById('h33-submit-btn') as HTMLButtonElement | null;
-  const h33OpenScopeBtn = document.getElementById('h33-open-full-scope') as HTMLButtonElement | null;
-
-  if (h33Form && h33EmailInput && h33Feedback && h33SubmitBtn) {
-    let edited = false;
-
-    const setFieldError = (msg: string) => {
-      h33EmailInput.setAttribute('aria-invalid', 'true');
-      h33InputShell?.classList.add('is-invalid');
-      h33InputShell?.classList.remove('is-success');
-      h33Feedback.classList.add('is-error');
-      h33Feedback.classList.remove('is-success');
-      h33Feedback.textContent = msg;
-    };
-
-    const clearFieldError = () => {
-      h33EmailInput.removeAttribute('aria-invalid');
-      h33InputShell?.classList.remove('is-invalid');
-      if (h33Feedback.classList.contains('is-error')) {
-        h33Feedback.classList.remove('is-error');
-        h33Feedback.textContent = impactEmailHint;
-      }
-    };
-
-    h33EmailInput.addEventListener('input', () => {
-      edited = true;
-      h33EmailInput.setCustomValidity('');
-      clearFieldError();
-    });
-
-    h33EmailInput.addEventListener('blur', () => {
-      if (!edited || !h33EmailInput.value.trim()) return;
-      if (!h33EmailInput.validity.valid) {
-        setFieldError('Please enter a valid work email (e.g. you@company.com).');
-      }
-    });
-
-    h33OpenScopeBtn?.addEventListener('click', () => {
-      const typed = h33EmailInput.value.trim();
-      const modalEmail = document.getElementById('audit-email') as HTMLInputElement | null;
-      if (typed && modalEmail && !modalEmail.value) {
-        modalEmail.value = typed;
-      }
-      modals.openAudit(h33OpenScopeBtn);
-    });
-
-    h33Form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const honey = h33Form.querySelector<HTMLInputElement>('input[name="_honey"]');
-      if (honey?.value) return;
-
-      const emailVal = h33EmailInput.value.trim();
-      if (!emailVal || !h33EmailInput.validity.valid) {
-        edited = true;
-        setFieldError('Please enter a valid email address to start your project.');
-        h33EmailInput.focus();
-        return;
-      }
-
-      clearFieldError();
-      const modalEmail = document.getElementById('audit-email') as HTMLInputElement | null;
-      if (modalEmail) modalEmail.value = emailVal;
-
-      const labelSpan = h33SubmitBtn.querySelector<HTMLElement>('.h33-submit-label');
-      h33SubmitBtn.disabled = true;
-      if (labelSpan) labelSpan.textContent = 'Sending...';
-
-      fetch(`https://formsubmit.co/ajax/${SITE_CONFIG.brand.email}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          _subject: `DEPLOY Quick-Start Request (${emailVal})`,
-          email: emailVal,
-          source: 'Impact Section — Hero 33 Email Signup',
-          _captcha: 'false',
-        }),
-      })
-        .then(() => {
-          h33InputShell?.classList.add('is-success');
-          h33Feedback.classList.remove('is-error');
-          h33Feedback.classList.add('is-success');
-          h33Feedback.textContent = `✓ Sent to ${SITE_CONFIG.brand.email} — we'll follow up within 24h.`;
-          if (labelSpan) labelSpan.textContent = 'Request sent';
-          window.setTimeout(() => {
-            h33SubmitBtn.disabled = false;
-            if (labelSpan) labelSpan.textContent = 'Start a project';
-          }, 3200);
-        })
-        .catch(() => {
-          h33SubmitBtn.disabled = false;
-          if (labelSpan) labelSpan.textContent = 'Start a project';
-          modals.openAudit(h33SubmitBtn);
-        });
-    });
-  }
-
   // 5b. Lazy-Mount DEPLOY-blue WebGL Venom liquid button effect on pointer devices (skip on touch phones for 0 GPU overhead)
   const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   if (!isTouchOnly) {
     import('./effects/VenomButtons').then(({ initVenomButtons }) => {
-      initVenomButtons('.btn-yellow-pill:not(.h33-submit-btn), .nav-audit-btn');
+      initVenomButtons('.btn-yellow-pill, .nav-audit-btn');
     });
   }
 

@@ -1,0 +1,71 @@
+.deploy-welcome {
+  position: fixed;
+  z-index: 10000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 48% 46%, #171b27 0%, #0e1016 43%, #07080b 83%);
+  color: #f7f8fa;
+}
+
+.deploy-welcome[hidden] {
+  display: none;
+}
+
+.deploy-welcome__brand {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.16fr repeat(6, minmax(0, 1fr)) 0.43fr;
+  align-items: center;
+  inline-size: min(89vw, 760px, 128svh);
+  min-block-size: 1.35em;
+  color: #f7f8fa;
+  font: 900 clamp(1rem, min(10.8vw, 15.3svh), 6.6rem) / 1 system-ui, sans-serif;
+  perspective: 800px;
+}
+
+.deploy-welcome__letter {
+  display: block;
+  text-align: center;
+}
+
+.deploy-welcome__letter:last-child {
+  color: #31cee8;
+}
+
+.deploy-welcome__mark {
+  position: relative;
+  z-index: 1;
+  inline-size: 86.207%;
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+}
+
+.deploy-welcome__face,
+.deploy-welcome__fallback {
+  position: absolute;
+  inset: -20%;
+  inline-size: 140%;
+  block-size: 140%;
+  object-fit: contain;
+}
+
+.deploy-welcome__face {
+  display: none;
+  background: url('/deploy-welcome-turn.webp') no-repeat left center / 1600% 100%;
+}
+
+.deploy-welcome__mark.has-sprite .deploy-welcome__face {
+  display: block;
+}
+
+.deploy-welcome__mark.has-sprite .deploy-welcome__fallback {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deploy-welcome { display: none; }
+}
