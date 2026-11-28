@@ -122,27 +122,27 @@ export function mountDeployLogo3D(
           role = 'arrow';
           delay = 0.0;
           speed = 1.18;
-          dir.set(1.05, 1.0, 0.28).normalize();
+          dir.set(1.18, 0.28, 0.22).normalize();
         } else if (ARROW_2_MID.has(idx)) {
           role = 'arrow';
           delay = 0.14;
           speed = 1.12;
-          dir.set(1.02, 0.96, 0.2).normalize();
+          dir.set(1.16, 0.22, 0.18).normalize();
         } else if (ARROW_3_TOP.has(idx)) {
           role = 'arrow';
           delay = 0.24;
           speed = 1.05;
-          dir.set(0.96, 1.04, 0.15).normalize();
+          dir.set(1.12, 0.34, 0.14).normalize();
         } else if (ARROW_4_BOT.has(idx)) {
           role = 'arrow';
           delay = 0.32;
           speed = 1.0;
-          dir.set(1.08, 0.88, 0.18).normalize();
+          dir.set(1.2, 0.18, 0.16).normalize();
         } else if (SHARD_PARTS.has(idx)) {
           role = 'shard';
           delay = 0.18;
           speed = 0.55;
-          dir.set(0.9, 0.95, 0.35).normalize();
+          dir.set(1.1, 0.26, 0.28).normalize();
         }
 
         animatedParts.push({
@@ -196,39 +196,40 @@ export function mountDeployLogo3D(
     const halfH = camera.position.z * halfFovTan;
     const halfW = halfH * camera.aspect;
 
-    // Phase 1 (t: 0.00 -> 0.42): Logo glides from upper-center down to bottom-left launch position
-    const glideT = reduced ? 0 : smooth(clamp01((currentT - 0.04) / 0.38));
+    // Phase 1 (t: 0.00 -> 0.38): Logo starts in the TOP sky band and glides cleanly to upper-left launch berth
+    // (staying 100% above the 3D cylinder text so it never overlaps any words!)
+    const glideT = reduced ? 0 : smooth(clamp01((currentT - 0.02) / 0.36));
 
-    // Phase 2 (t: 0.44 -> 1.00): Logo holds in bottom-left and THROWS the arrows diagonally up-right across screen
-    const fireT = reduced ? 0 : clamp01((currentT - 0.44) / 0.56);
+    // Phase 2 (t: 0.40 -> 1.00): Logo holds in upper-left sky band and fires arrows across the upper horizon
+    const fireT = reduced ? 0 : clamp01((currentT - 0.40) / 0.60);
 
     const startX = 0;
-    const startY = isNarrow ? 0.88 : 0.92;
-    const leftBottomX = isNarrow ? -halfW * 0.42 : -halfW * 0.66;
-    const leftBottomY = isNarrow ? -halfH * 0.34 : -halfH * 0.38;
+    const startY = isNarrow ? halfH * 0.42 : halfH * 0.44;
+    const upperLeftX = isNarrow ? -halfW * 0.34 : -halfW * 0.48;
+    const upperLeftY = isNarrow ? halfH * 0.40 : halfH * 0.41;
 
     // Subtle recoil kick on the D launcher when arrows fire
-    const recoil = Math.sin(clamp01(fireT * 2.5) * Math.PI) * 0.14;
-    const floatY = reduced ? 0 : Math.sin(elapsed * 1.5) * 0.035 * (1 - fireT);
+    const recoil = Math.sin(clamp01(fireT * 2.5) * Math.PI) * 0.1;
+    const floatY = reduced ? 0 : Math.sin(elapsed * 1.5) * 0.025 * (1 - fireT);
 
     pivot.position.set(
-      lerp(startX, leftBottomX, glideT) - recoil,
-      lerp(startY, leftBottomY, glideT) - recoil * 0.7 + floatY,
+      lerp(startX, upperLeftX, glideT) - recoil,
+      lerp(startY, upperLeftY, glideT) - recoil * 0.35 + floatY,
       0
     );
 
-    // Smooth 3D framing rotation: faces forward cleanly, tilts slightly toward top-right for launch
+    // Smooth 3D framing rotation: faces forward cleanly, tilts slightly toward right horizon for launch
     if (reduced) {
-      pivot.rotation.set(0.05, 0.12, 0);
+      pivot.rotation.set(0.04, 0.12, 0);
     } else {
-      pivot.rotation.y = lerp(-0.32, 0.24, glideT) + Math.sin(elapsed * 0.7) * 0.04;
-      pivot.rotation.x = lerp(0.06, -0.06, glideT);
-      pivot.rotation.z = lerp(0, -0.04, glideT);
+      pivot.rotation.y = lerp(-0.26, 0.22, glideT) + Math.sin(elapsed * 0.7) * 0.035;
+      pivot.rotation.x = lerp(0.05, -0.04, glideT);
+      pivot.rotation.z = lerp(0, -0.08, glideT);
     }
 
-    const entryScale = 0.75 + 0.25 * smooth(clamp01(currentT * 4.5));
-    const mobileScale = isNarrow ? 0.68 : 0.92;
-    pivot.scale.setScalar(entryScale * mobileScale);
+    const entryScale = 0.78 + 0.22 * smooth(clamp01(currentT * 4.5));
+    const emblemScale = isNarrow ? 0.48 : 0.56;
+    pivot.scale.setScalar(entryScale * emblemScale);
 
     // Animate individual segmented parts (arrows shoot diagonally up-right across the screen!)
     const throwDist = isNarrow ? 4.2 : 5.6;

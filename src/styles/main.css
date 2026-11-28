@@ -1058,16 +1058,16 @@ button {
   }
 }
 
-/* Beat 09: Zeroth Logo Morph Finale */
+/* Beat 09: Full-Screen Top-Anchored Studio Finale + 3D Cylinder Text */
 .story-zeroth-finale {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   text-align: center;
-  padding: 24px 24px 14vh;
+  padding: calc(var(--header-h) + clamp(16px, 2.8vh, 30px)) 0 clamp(54px, 7.5vh, 76px);
   color: var(--ink-dark);
   opacity: 0;
   z-index: 7;
@@ -1087,42 +1087,126 @@ button {
   display: block;
 }
 
-.zm-copy-block {
+/* 1. Top Studio Header Bar */
+.zm-top-interface {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block-end: 14px;
+  border-block-end: 1px solid rgba(12, 12, 13, 0.12);
+}
+
+.zm-top-left,
+.zm-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zm-tag-pill {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--ink-dark);
+  color: var(--bg-offwhite);
+}
+
+.zm-top-divider {
+  inline-size: 1px;
+  block-size: 14px;
+  background: rgba(12, 12, 13, 0.2);
+}
+
+.zm-top-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--muted-light);
+}
+
+.zm-cyl-counter {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.zm-cyl-counter strong {
+  color: var(--ink-dark);
+  font-weight: 800;
+}
+
+.zm-cyl-progress-track {
+  inline-size: 96px;
+  block-size: 2px;
+  background: rgba(12, 12, 13, 0.14);
+  overflow: clip;
+}
+
+.zm-cyl-progress-fill {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  background: #156ec4;
+  transform-origin: left center;
+  transform: scaleX(0);
+  will-change: transform;
+}
+
+/* 2. Upper Emblem Sky Band (keeps 3D D logo & arrows cleanly separated above text) */
+.zm-emblem-sky {
   position: relative;
   z-index: 2;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  inline-size: 100%;
+  min-block-size: clamp(110px, 19vh, 175px);
+  display: grid;
+  place-items: center;
 }
 
 .zeroth-morph-mark {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 10px;
 }
 
-/* 3D Text Reveal: Lines of text turning on a horizontal 3D cylinder as you scroll */
-.cyl-text-viewport {
-  --cyl-radius: clamp(118px, 18vh, 182px);
+/* 3. Center 3D Cylinder Stage */
+.zm-copy-block {
   position: relative;
-  width: min(1160px, 94vw);
-  height: clamp(230px, 36vh, 330px);
+  z-index: 3;
+  inline-size: min(1140px, 92vw);
+  container-type: inline-size;
+  container-name: cyl-stage;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cyl-text-viewport {
+  --cyl-radius: clamp(175px, 24vh, 240px);
+  position: relative;
+  inline-size: 100%;
+  block-size: clamp(230px, 38vh, 340px);
   display: grid;
   place-items: center;
-  perspective: 960px;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 17% 83%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 17% 83%, transparent 100%);
-  margin: 4px 0 12px;
+  perspective: 1180px;
+  overflow: clip;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18% 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18% 82%, transparent 100%);
 }
 
 .cyl-text-drum {
   position: relative;
-  width: 100%;
-  height: 100%;
+  inline-size: 100%;
+  block-size: 100%;
   display: grid;
   place-items: center;
   transform-style: preserve-3d;
@@ -1132,21 +1216,70 @@ button {
 .cyl-text-line {
   grid-column: 1;
   grid-row: 1;
-  width: 100%;
+  inline-size: 100%;
   text-align: center;
-  font-size: clamp(1.75rem, 4.4vw, 3.85rem);
+  font-size: clamp(2rem, 1.15rem + 3.4vw, 4.6rem);
   font-weight: 900;
-  line-height: 1.06;
+  line-height: 1.14;
   letter-spacing: -0.04em;
   color: var(--ink-dark);
+  text-wrap: balance;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: opacity;
-  padding: 0 12px;
+  padding-inline: 16px;
+}
+
+@supports (font-size: 1cqi) {
+  .cyl-text-line {
+    font-size: clamp(2rem, 1.05rem + 4.4cqi, 4.6rem);
+  }
 }
 
 .cyl-text-line .cyl-accent {
   color: #156ec4;
+}
+
+/* 4. Bottom Minimal Studio Interface Bar */
+.zm-bottom-interface {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid rgba(12, 12, 13, 0.12);
+}
+
+.zm-bottom-meta {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--muted-light);
+}
+
+.zm-finale-cta {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--ink-dark);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+.zm-finale-cta:hover {
+  background: #156ec4;
+  transform: translateY(-1px);
 }
 
 .zm-dot {
@@ -5642,7 +5775,16 @@ dialog::backdrop {
   }
 
   .story-zeroth-finale {
-    padding: 20px 18px 11vh;
+    padding: calc(var(--header-h) + 14px) 0 54px;
+  }
+
+  .zm-top-divider,
+  .zm-top-kicker {
+    display: none;
+  }
+
+  .zm-emblem-sky {
+    min-block-size: 96px;
   }
 
   .zm-title {

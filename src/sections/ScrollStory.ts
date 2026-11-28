@@ -12,14 +12,12 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
 const CYLINDER_LINES = [
-  'Websites built to convert.',
-  'SaaS engineered to scale.',
-  'Company systems, unified.',
-  'AI wired into real ops.',
-  '100% your code & stack.',
+  'Fast websites.',
+  'Scalable SaaS.',
+  'Unified systems.',
   'We build, <span class="cyl-accent">you lead.</span>',
 ];
-const CYL_STEP_DEG = 27;
+const CYL_STEP_DEG = 40;
 
 export function renderScrollStoryHTML(): string {
   const { story } = SITE_CONFIG;
@@ -124,19 +122,37 @@ export function renderScrollStoryHTML(): string {
             <div class="story-fix-lens"></div>
           </div>
 
-          <!-- Beat 09: DEPLOY 3D GLB Logo + 3D Cylinder Text Reveal Finale -->
+          <!-- Beat 09: Full-Screen Top-Anchored Studio Finale + 3D Cylinder Text Reveal -->
           <div class="story-zeroth-finale">
             <div class="deploy-logo-3d-host" id="deploy-logo-3d-host" data-asset-slot="zeroth-logo"></div>
-            <div class="zeroth-morph-mark" aria-hidden="true">
-              <picture>
-                <source srcset="./deploy-mark.webp" type="image/webp" />
-                <img class="finale-logo-fallback" src="./logo-mark.png" alt="DEPLOY logo" width="84" height="84" />
-              </picture>
-            </div>
-            <div class="zm-copy-block">
-              <div class="zm-tag">${story.zerothMorph.tag}</div>
 
-              <!-- 3D Text Reveal: Lines of text turning on a 3D cylinder as you scroll -->
+            <!-- 1. Top Studio Header Bar (starts cleanly at top of screen below navbar) -->
+            <div class="container zm-top-interface">
+              <div class="zm-top-left">
+                <span class="zm-tag-pill">${story.zerothMorph.tag}</span>
+                <span class="zm-top-divider" aria-hidden="true"></span>
+                <span class="zm-top-kicker">PRODUCTION ENGINEERING</span>
+              </div>
+              <div class="zm-top-right" aria-hidden="true">
+                <span class="zm-cyl-counter"><strong id="story-cyl-active-idx">01</strong> / 0${CYLINDER_LINES.length}</span>
+                <div class="zm-cyl-progress-track">
+                  <span class="zm-cyl-progress-fill" id="story-cyl-progress-fill"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Upper Emblem Band (reserves clean sky lane for the 3D D logo & flying arrows) -->
+            <div class="zm-emblem-sky" aria-hidden="true">
+              <div class="zeroth-morph-mark">
+                <picture>
+                  <source srcset="./deploy-mark.webp" type="image/webp" />
+                  <img class="finale-logo-fallback" src="./logo-mark.png" alt="" width="68" height="68" />
+                </picture>
+              </div>
+            </div>
+
+            <!-- 3. Center 3D Cylinder Text Stage (short lines, generous spacing, rolls from top) -->
+            <div class="zm-copy-block cyl-stage-shell">
               <div class="cyl-text-viewport" aria-label="${CYLINDER_LINES.map((l) => l.replace(/<[^>]+>/g, '')).join(' ')}">
                 <div class="cyl-text-drum" id="story-cyl-drum" aria-hidden="true">
                   ${CYLINDER_LINES.map(
@@ -144,14 +160,20 @@ export function renderScrollStoryHTML(): string {
                     <div
                       class="cyl-text-line ${idx === 0 ? 'is-equator' : ''}"
                       data-cyl-line="${idx}"
-                      style="transform: rotateX(${-idx * CYL_STEP_DEG}deg) translateZ(var(--cyl-radius));"
+                      style="transform: rotateX(${idx * CYL_STEP_DEG}deg) translateZ(var(--cyl-radius));"
                     >${line}</div>
                   `
                   ).join('')}
                 </div>
               </div>
+            </div>
 
-              <p class="zm-subtitle">${story.zerothMorph.subtitle}</p>
+            <!-- 4. Bottom Minimal Studio Action Bar -->
+            <div class="container zm-bottom-interface">
+              <span class="zm-bottom-meta">100% CODE OWNERSHIP &middot; ZERO TEMPLATES</span>
+              <button type="button" class="zm-finale-cta" data-open-audit>
+                Start a project <span aria-hidden="true">&rarr;</span>
+              </button>
             </div>
           </div>
         </div>
@@ -224,6 +246,8 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   const zerothFinale = section.querySelector<HTMLElement>('.story-zeroth-finale')!;
   const cylDrum = section.querySelector<HTMLElement>('#story-cyl-drum');
   const cylLineEls = Array.from(section.querySelectorAll<HTMLElement>('.cyl-text-line'));
+  const cylActiveIdxEl = section.querySelector<HTMLElement>('#story-cyl-active-idx');
+  const cylProgressFillEl = section.querySelector<HTMLElement>('#story-cyl-progress-fill');
   const logo3DHost = section.querySelector<HTMLElement>('#deploy-logo-3d-host');
   const logoFallback = section.querySelector<HTMLElement>('.story-zeroth-finale .zeroth-morph-mark');
   const copyPanel = section.querySelector<HTMLElement>('.story-copy-panel')!;
@@ -255,6 +279,7 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
 
   const query = SITE_CONFIG.story.queryText;
   let lastRank = 47;
+  let lastCylActive = 0;
   const lastPillStates: boolean[] = diagPills.map(() => false);
 
   // Beat windows in normalized progress 0..1:
@@ -419,28 +444,50 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
 
     const finaleIn = smooth(invLerp(0.755, 0.80, p));
     zerothFinale.style.opacity = finaleIn.toFixed(3);
-    zerothFinale.style.transform = `translate3d(0, ${lerp(24, 0, finaleIn).toFixed(1)}px, 0)`;
+    // Descends smoothly from the top of the screen on entrance
+    zerothFinale.style.transform = `translate3d(0, ${lerp(-36, 0, finaleIn).toFixed(1)}px, 0)`;
 
-    // 3D Cylinder Text Rotation: turns smoothly from Line 0 (0deg) to final Climax Line (+135deg) as user scrolls
-    const cylProgress = invLerp(0.79, 0.982, p);
+    // 3D Cylinder Text Rotation: lines start from the TOP curvature (+idx * 40deg) and roll downward into sharp focus
+    const cylProgress = invLerp(0.785, 0.982, p);
     const maxDrumDeg = (CYLINDER_LINES.length - 1) * CYL_STEP_DEG;
     const drumAngleDeg = cylProgress * maxDrumDeg;
     if (cylDrum) {
-      cylDrum.style.transform = `rotateX(${drumAngleDeg.toFixed(2)}deg)`;
+      cylDrum.style.transform = `rotateX(${(-drumAngleDeg).toFixed(2)}deg)`;
     }
+    if (cylProgressFillEl) {
+      cylProgressFillEl.style.transform = `scaleX(${cylProgress.toFixed(4)})`;
+    }
+
+    let activeLineIdx = 0;
+    let bestDist = Infinity;
     cylLineEls.forEach((lineEl, idx) => {
-      const relDeg = drumAngleDeg - idx * CYL_STEP_DEG;
+      const relDeg = idx * CYL_STEP_DEG - drumAngleDeg;
       const absDeg = Math.abs(relDeg);
-      if (absDeg >= 88) {
+      if (absDeg < bestDist) {
+        bestDist = absDeg;
+        activeLineIdx = idx;
+      }
+      if (absDeg >= 82) {
         lineEl.style.opacity = '0';
         lineEl.classList.remove('is-equator');
       } else {
         const cosVal = Math.cos((relDeg * Math.PI) / 180);
-        const lineOp = Math.pow(Math.max(0, cosVal), 2.15);
+        // Stronger contrast curve so the center equator line reads cleanly with zero visual crowding
+        const lineOp = Math.pow(Math.max(0, cosVal), 3.4);
         lineEl.style.opacity = lineOp.toFixed(3);
-        lineEl.classList.toggle('is-equator', absDeg < CYL_STEP_DEG * 0.5);
+        lineEl.classList.toggle('is-equator', absDeg < CYL_STEP_DEG * 0.45);
       }
     });
+
+    if (activeLineIdx !== lastCylActive) {
+      const dir: 1 | -1 = activeLineIdx > lastCylActive ? 1 : -1;
+      lastCylActive = activeLineIdx;
+      morphSpeedingText(cylActiveIdxEl, `0${activeLineIdx + 1}`, {
+        axis: 'y',
+        direction: dir,
+        durationMs: 280,
+      });
+    }
 
     if (logo3D) {
       const logoTravelT = invLerp(0.76, 0.99, p);
