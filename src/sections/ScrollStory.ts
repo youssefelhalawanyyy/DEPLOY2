@@ -10,6 +10,16 @@ const invLerp = (a: number, b: number, v: number) => clamp01((v - a) / (b - a));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
+const CYLINDER_LINES = [
+  'Websites built to convert.',
+  'SaaS engineered to scale.',
+  'Company systems, unified.',
+  'AI wired into real ops.',
+  '100% your code & stack.',
+  'We build, <span class="cyl-accent">you lead.</span>',
+];
+const CYL_STEP_DEG = 27;
+
 export function renderScrollStoryHTML(): string {
   const { story } = SITE_CONFIG;
   const beatsHtml = story.beats
@@ -113,18 +123,33 @@ export function renderScrollStoryHTML(): string {
             <div class="story-fix-lens"></div>
           </div>
 
-          <!-- Beat 09: DEPLOY 3D GLB Logo & Finale Reveal -->
+          <!-- Beat 09: DEPLOY 3D GLB Logo + 3D Cylinder Text Reveal Finale -->
           <div class="story-zeroth-finale">
             <div class="deploy-logo-3d-host" id="deploy-logo-3d-host" data-asset-slot="zeroth-logo"></div>
             <div class="zeroth-morph-mark" aria-hidden="true">
               <picture>
                 <source srcset="./deploy-mark.webp" type="image/webp" />
-                <img class="finale-logo-fallback" src="./logo-mark.png" alt="DEPLOY logo" width="96" height="96" />
+                <img class="finale-logo-fallback" src="./logo-mark.png" alt="DEPLOY logo" width="84" height="84" />
               </picture>
             </div>
             <div class="zm-copy-block">
               <div class="zm-tag">${story.zerothMorph.tag}</div>
-              <h2 class="zm-title">${story.zerothMorph.title.replace('\n', '<br />')}</h2>
+
+              <!-- 3D Text Reveal: Lines of text turning on a 3D cylinder as you scroll -->
+              <div class="cyl-text-viewport" aria-label="${CYLINDER_LINES.map((l) => l.replace(/<[^>]+>/g, '')).join(' ')}">
+                <div class="cyl-text-drum" id="story-cyl-drum" aria-hidden="true">
+                  ${CYLINDER_LINES.map(
+                    (line, idx) => `
+                    <div
+                      class="cyl-text-line ${idx === 0 ? 'is-equator' : ''}"
+                      data-cyl-line="${idx}"
+                      style="transform: rotateX(${-idx * CYL_STEP_DEG}deg) translateZ(var(--cyl-radius));"
+                    >${line}</div>
+                  `
+                  ).join('')}
+                </div>
+              </div>
+
               <p class="zm-subtitle">${story.zerothMorph.subtitle}</p>
             </div>
           </div>
@@ -196,6 +221,8 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   const ghostBelow2 = section.querySelector<HTMLElement>('.ghost-below-2 .rc-num')!;
   const fixLens = section.querySelector<HTMLElement>('.story-fix-lens')!;
   const zerothFinale = section.querySelector<HTMLElement>('.story-zeroth-finale')!;
+  const cylDrum = section.querySelector<HTMLElement>('#story-cyl-drum');
+  const cylLineEls = Array.from(section.querySelectorAll<HTMLElement>('.cyl-text-line'));
   const logo3DHost = section.querySelector<HTMLElement>('#deploy-logo-3d-host');
   const logoFallback = section.querySelector<HTMLElement>('.story-zeroth-finale .zeroth-morph-mark');
   const copyPanel = section.querySelector<HTMLElement>('.story-copy-panel')!;
@@ -238,15 +265,16 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   // 0.78 - 0.88: Beat 08 (Quoted - arcs + yellow highlight)
   // 0.88 - 1.00: Beat 09 (Zeroth - dark to light morph)
 
+  // Beat windows in normalized progress 0..1 (with generous 0.75..1.00 runway for Beat 09 3D Cylinder Text Reveal):
   const beatRanges: Array<[number, number]> = [
-    [0.0, 0.13],
-    [0.13, 0.22],
-    [0.22, 0.33],
-    [0.33, 0.46],
-    [0.46, 0.59],
-    [0.59, 0.69],
-    [0.69, 0.78],
-    [0.78, 0.88],
+    [0.0, 0.105],
+    [0.105, 0.185],
+    [0.185, 0.28],
+    [0.28, 0.39],
+    [0.39, 0.50],
+    [0.50, 0.585],
+    [0.585, 0.67],
+    [0.67, 0.75],
   ];
 
   const update = (rawP: number) => {
@@ -263,13 +291,13 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
 
     dotEls.forEach((d, idx) => {
       d.classList.toggle('is-active', idx === activeBeat);
-      d.classList.toggle('is-light', p > 0.9);
+      d.classList.toggle('is-light', p > 0.77);
     });
 
     beatEls.forEach((el, idx) => {
       const [start, end] = beatRanges[idx];
-      const fadeIn = idx === 0 ? 1 : smooth(invLerp(start - 0.015, start + 0.025, p));
-      const fadeOut = 1 - smooth(invLerp(end - 0.025, end + 0.01, p));
+      const fadeIn = idx === 0 ? 1 : smooth(invLerp(start - 0.015, start + 0.022, p));
+      const fadeOut = 1 - smooth(invLerp(end - 0.022, end + 0.008, p));
       const opacity = Math.min(fadeIn, fadeOut);
       el.style.opacity = opacity.toFixed(3);
       el.style.transform = `translate3d(0, ${((1 - fadeIn) * 14).toFixed(1)}px, 0)`;
@@ -277,51 +305,51 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     });
 
     // Spotlight intro: already visible at p = 0 so there is zero empty black space entering Story
-    const spotOpacity = (1 - smooth(invLerp(0.05, 0.11, p))) * 0.85;
+    const spotOpacity = (1 - smooth(invLerp(0.04, 0.095, p))) * 0.85;
     spotlight.style.opacity = spotOpacity.toFixed(3);
 
-    // Search bar visibility: immediately visible in Beat 01 (0.00..0.145) and returns in Beats 06-08 (0.57..0.90)
-    const sb1 = 1 - smooth(invLerp(0.12, 0.145, p));
-    const sb2 = smooth(invLerp(0.57, 0.62, p)) * (1 - smooth(invLerp(0.86, 0.90, p)));
+    // Search bar visibility: immediately visible in Beat 01 (0.00..0.12) and returns in Beats 06-08 (0.49..0.76)
+    const sb1 = 1 - smooth(invLerp(0.098, 0.12, p));
+    const sb2 = smooth(invLerp(0.49, 0.53, p)) * (1 - smooth(invLerp(0.735, 0.77, p)));
     const sbOpacity = Math.max(sb1, sb2);
-    const sbY = sb2 > sb1 ? -225 : lerp(-34, -18, invLerp(0.0, 0.12, p));
+    const sbY = sb2 > sb1 ? -225 : lerp(-34, -18, invLerp(0.0, 0.10, p));
     searchBar.style.opacity = sbOpacity.toFixed(3);
     searchBar.style.transform = `translate3d(-50%, ${sbY.toFixed(1)}px, 0) scale(${lerp(0.96, 1, sbOpacity).toFixed(3)})`;
 
     // Typewriter query text during Beat 01 (starts with prompt visible at p = 0)
-    if (p < 0.16) {
+    if (p < 0.13) {
       const minChars = 6;
-      const charCount = Math.max(minChars, Math.floor(lerp(minChars, query.length, invLerp(0.005, 0.095, p))));
+      const charCount = Math.max(minChars, Math.floor(lerp(minChars, query.length, invLerp(0.005, 0.08, p))));
       searchText.textContent = query.slice(0, charCount);
     } else {
       searchText.textContent = '';
     }
 
     // Card stack entrance (Beat 02..08)
-    const stackIn = smooth(invLerp(0.13, 0.175, p));
-    const stackOut = 1 - smooth(invLerp(0.87, 0.92, p));
+    const stackIn = smooth(invLerp(0.105, 0.145, p));
+    const stackOut = 1 - smooth(invLerp(0.74, 0.78, p));
     const stackOpacity = stackIn * stackOut;
     cardStack.style.opacity = stackOpacity.toFixed(3);
 
     // 3D perspective tilt: tilted in Beats 02-05, flattens upright in Beat 06-08
-    const flatten = smooth(invLerp(0.55, 0.62, p));
+    const flatten = smooth(invLerp(0.47, 0.53, p));
     const rotX = lerp(18, 0, flatten);
     const rotY = lerp(-12, 0, flatten);
     const rotZ = lerp(-3.5, 0, flatten);
 
     // Card stack Y offset: centered vertically (-50%), then pushes down in Beat 07 when DEPLOYED box moves in above it
-    const aiPushDown = smooth(invLerp(0.68, 0.74, p));
+    const aiPushDown = smooth(invLerp(0.58, 0.635, p));
     const stackY = lerp(24, -18, stackIn) + aiPushDown * 116;
     const stackScale = lerp(0.92, 1.0, stackIn) * lerp(1, 0.86, aiPushDown);
     cardStack.style.transform = `translate3d(-50%, calc(-50% + ${stackY.toFixed(1)}px), 0) perspective(1100px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${stackScale.toFixed(3)})`;
 
     // Ghost cards fade out once we reach #1
-    const ghostOpacity = 1 - smooth(invLerp(0.57, 0.63, p));
+    const ghostOpacity = 1 - smooth(invLerp(0.485, 0.54, p));
     cardStack.style.setProperty('--ghost-opacity', ghostOpacity.toFixed(3));
 
-    // Beat 04: The Fix lens sweeps left-to-right across card 47 (0.34..0.44)
-    const fixSweep = invLerp(0.34, 0.44, p);
-    const lensVis = smooth(invLerp(0.33, 0.355, p)) * (1 - smooth(invLerp(0.43, 0.455, p)));
+    // Beat 04: The Fix lens sweeps left-to-right across card 47 (0.29..0.375)
+    const fixSweep = invLerp(0.29, 0.375, p);
+    const lensVis = smooth(invLerp(0.28, 0.305, p)) * (1 - smooth(invLerp(0.365, 0.39, p)));
     fixLens.style.opacity = lensVis.toFixed(3);
     fixLens.style.transform = `translate3d(${lerp(-280, 290, fixSweep).toFixed(1)}px, -50%, 40px)`;
 
@@ -330,8 +358,8 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     mainCard.classList.toggle('is-fixed', isFixed);
     mainCard.classList.toggle('is-dimmed-by-ai', aiPushDown > 0.35);
 
-    // Diagnostic pills visibility (Beats 03-04: 0.22..0.47)
-    const diagVis = smooth(invLerp(0.22, 0.25, p)) * (1 - smooth(invLerp(0.455, 0.48, p)));
+    // Diagnostic pills visibility (Beats 03-04: 0.185..0.40)
+    const diagVis = smooth(invLerp(0.185, 0.215, p)) * (1 - smooth(invLerp(0.385, 0.405, p)));
     diagContainer.style.opacity = diagVis.toFixed(3);
     diagPills.forEach((pill, idx) => {
       const threshold = 0.2 + idx * 0.22;
@@ -342,11 +370,10 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
 
     // Beat 05-06: Rank countdown 47 -> 2 -> 1
     let currentRank = 47;
-    if (p >= 0.46 && p < 0.60) {
-      const climbT = smooth(invLerp(0.46, 0.59, p));
-      // Non-linear acceleration from 47 down to 2
+    if (p >= 0.39 && p < 0.51) {
+      const climbT = smooth(invLerp(0.39, 0.50, p));
       currentRank = Math.max(2, Math.round(lerp(47, 2, Math.pow(climbT, 0.72))));
-    } else if (p >= 0.60) {
+    } else if (p >= 0.51) {
       currentRank = 1;
     }
     mainNum.textContent = String(currentRank);
@@ -356,37 +383,58 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     ghostBelow2.textContent = String(currentRank + 2);
 
     // Beat 07-08: AI Overview box descends above #1
-    const aiIn = smooth(invLerp(0.68, 0.73, p));
-    const aiOut = 1 - smooth(invLerp(0.875, 0.915, p));
+    const aiIn = smooth(invLerp(0.58, 0.625, p));
+    const aiOut = 1 - smooth(invLerp(0.745, 0.78, p));
     const aiOpacity = aiIn * aiOut;
     aiBox.style.opacity = aiOpacity.toFixed(3);
     aiBox.style.transform = `translate3d(-50%, ${lerp(-145, -108, aiIn).toFixed(1)}px, 0) scale(${lerp(0.95, 1, aiIn).toFixed(3)})`;
 
-    // Beat 08: Citation arcs & yellow quoted highlight (0.78..0.88)
-    const quoteT = smooth(invLerp(0.785, 0.84, p));
+    // Beat 08: Citation arcs & yellow quoted highlight (0.67..0.75)
+    const quoteT = smooth(invLerp(0.675, 0.72, p));
     const arcsOpacity = quoteT * aiOut;
     citationArcs.style.opacity = arcsOpacity.toFixed(3);
     citationArcs.style.setProperty('--arc-progress', quoteT.toFixed(3));
     aiQuotedBar.style.opacity = quoteT.toFixed(3);
-    aiPill.style.opacity = smooth(invLerp(0.81, 0.85, p)).toFixed(3);
-    aiSource.style.opacity = smooth(invLerp(0.82, 0.86, p)).toFixed(3);
+    aiPill.style.opacity = smooth(invLerp(0.695, 0.73, p)).toFixed(3);
+    aiSource.style.opacity = smooth(invLerp(0.705, 0.74, p)).toFixed(3);
 
-    // Beat 09: Dark -> Off-white wash + 3D GLB Logo sweeping & rotating across the screen (0.83..1.0)
-    const morphT = smooth(invLerp(0.83, 0.89, p));
+    // Beat 09: Dark -> Off-white wash + 3D Cylinder Text Reveal + 3D DEPLOY Logo arrow launch (0.74..1.0)
+    const morphT = smooth(invLerp(0.735, 0.785, p));
     bgWash.style.opacity = morphT.toFixed(3);
     sticky.classList.toggle('is-light-mode', morphT > 0.55);
 
-    const finaleIn = smooth(invLerp(0.85, 0.90, p));
+    const finaleIn = smooth(invLerp(0.755, 0.80, p));
     zerothFinale.style.opacity = finaleIn.toFixed(3);
     zerothFinale.style.transform = `translate3d(0, ${lerp(24, 0, finaleIn).toFixed(1)}px, 0)`;
 
+    // 3D Cylinder Text Rotation: turns smoothly from Line 0 (0deg) to final Climax Line (+135deg) as user scrolls
+    const cylProgress = invLerp(0.79, 0.982, p);
+    const maxDrumDeg = (CYLINDER_LINES.length - 1) * CYL_STEP_DEG;
+    const drumAngleDeg = cylProgress * maxDrumDeg;
+    if (cylDrum) {
+      cylDrum.style.transform = `rotateX(${drumAngleDeg.toFixed(2)}deg)`;
+    }
+    cylLineEls.forEach((lineEl, idx) => {
+      const relDeg = drumAngleDeg - idx * CYL_STEP_DEG;
+      const absDeg = Math.abs(relDeg);
+      if (absDeg >= 88) {
+        lineEl.style.opacity = '0';
+        lineEl.classList.remove('is-equator');
+      } else {
+        const cosVal = Math.cos((relDeg * Math.PI) / 180);
+        const lineOp = Math.pow(Math.max(0, cosVal), 2.15);
+        lineEl.style.opacity = lineOp.toFixed(3);
+        lineEl.classList.toggle('is-equator', absDeg < CYL_STEP_DEG * 0.5);
+      }
+    });
+
     if (logo3D) {
-      const logoTravelT = invLerp(0.84, 1.0, p);
+      const logoTravelT = invLerp(0.76, 0.99, p);
       logo3D.setProgress(logoTravelT, finaleIn);
     }
 
     // Hide left copy panel during finale
-    copyPanel.style.opacity = (1 - smooth(invLerp(0.825, 0.86, p))).toFixed(3);
+    copyPanel.style.opacity = (1 - smooth(invLerp(0.73, 0.765, p))).toFixed(3);
   };
 
   update(0);

@@ -502,10 +502,10 @@ function bootstrap() {
     const storyScrollable = Math.max(1, storySection.offsetHeight - window.innerHeight);
     const targets = [
       0,
-      storyTop + storyScrollable * 0.08,
-      storyTop + storyScrollable * 0.4,
-      storyTop + storyScrollable * 0.75,
-      storyTop + storyScrollable * 0.94,
+      storyTop + storyScrollable * 0.06,
+      storyTop + storyScrollable * 0.33,
+      storyTop + storyScrollable * 0.62,
+      storyTop + storyScrollable * 0.80,
     ];
     window.scrollTo({ top: targets[chapterIdx] ?? 0, behavior: 'smooth' });
   });
@@ -707,7 +707,7 @@ function bootstrap() {
 
       // Adaptive Header Theme responds crisply to live section bounds
       const headerMid = 34;
-      const storyLight = targetStoryP > 0.86 && storySection.getBoundingClientRect().bottom > headerMid;
+      const storyLight = targetStoryP > 0.76 && storySection.getBoundingClientRect().bottom > headerMid;
       const inServices =
         servicesSection.getBoundingClientRect().top <= headerMid &&
         servicesSection.getBoundingClientRect().bottom > headerMid;

@@ -203,9 +203,9 @@ export function mountDeployLogo3D(
     const fireT = reduced ? 0 : clamp01((currentT - 0.44) / 0.56);
 
     const startX = 0;
-    const startY = isNarrow ? 0.55 : 0.46;
-    const leftBottomX = isNarrow ? -halfW * 0.38 : -halfW * 0.58;
-    const leftBottomY = isNarrow ? -halfH * 0.25 : -halfH * 0.34;
+    const startY = isNarrow ? 0.88 : 0.92;
+    const leftBottomX = isNarrow ? -halfW * 0.42 : -halfW * 0.66;
+    const leftBottomY = isNarrow ? -halfH * 0.34 : -halfH * 0.38;
 
     // Subtle recoil kick on the D launcher when arrows fire
     const recoil = Math.sin(clamp01(fireT * 2.5) * Math.PI) * 0.14;
