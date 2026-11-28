@@ -478,16 +478,16 @@ function bootstrap() {
     window.scrollTo({ top: targets[chapterIdx] ?? 0, behavior: 'smooth' });
   });
 
-  document.querySelectorAll('[data-open-audit]').forEach((el) => {
-    el.addEventListener('click', () => modals.openAudit());
+  document.querySelectorAll<HTMLElement>('[data-open-audit]').forEach((el) => {
+    el.addEventListener('click', () => modals.openAudit(el));
   });
-  document.querySelectorAll('[data-open-film]').forEach((el) => {
-    el.addEventListener('click', () => modals.openFilm());
+  document.querySelectorAll<HTMLElement>('[data-open-film]').forEach((el) => {
+    el.addEventListener('click', () => modals.openFilm(el));
   });
   document.querySelectorAll<HTMLElement>('[data-open-legal]').forEach((el) => {
     el.addEventListener('click', () => {
       const kind = el.dataset.openLegal as 'impressum' | 'datenschutz';
-      modals.openLegal(kind);
+      modals.openLegal(kind, el);
     });
   });
 

@@ -1,131 +1,222 @@
 import { SITE_CONFIG } from '../config/siteConfig';
 
 export interface ModalsController {
-  openAudit: () => void;
-  openFilm: () => void;
-  openLegal: (kind: 'impressum' | 'datenschutz') => void;
+  openAudit: (triggerEl?: HTMLElement | null) => void;
+  openFilm: (triggerEl?: HTMLElement | null) => void;
+  openLegal: (kind: 'impressum' | 'datenschutz', triggerEl?: HTMLElement | null) => void;
 }
 
+const BUILD_TYPES = [
+  { id: 'website', icon: '◈', title: 'Website / 3D Web', sub: 'Brand, marketing & motion' },
+  { id: 'saas', icon: '⚡', title: 'SaaS Platform', sub: 'Multi-tenant, auth & billing' },
+  { id: 'erp', icon: '⊞', title: 'Company System', sub: 'Custom ERP, POS & portals' },
+  { id: 'ai', icon: '✦', title: 'AI & Automation', sub: 'Copilots, agents & pipelines' },
+];
+
+const TIMELINES = ['2–4 Weeks', '1–2 Months', '3+ Months', 'Flexible'];
+const SCOPES = ['MVP / V1', 'Full System', 'Scale & Revamp', 'Retainer'];
+
 export function renderModalsHTML(): string {
-  const { auditForm, filmModal, legal } = SITE_CONFIG;
+  const { filmModal, legal, brand } = SITE_CONFIG;
   return `
-    <!-- Audit Request Modal -->
-    <dialog id="audit-dialog" class="zeroth-dialog" aria-labelledby="audit-dialog-title">
-      <div class="dialog-panel">
+    <!-- Portal shockwave burst layer -->
+    <div id="portal-burst-layer" class="portal-burst-layer" aria-hidden="true"></div>
+
+    <!-- Interactive 2-Step Project Configurator Modal -->
+    <dialog id="audit-dialog" class="zeroth-dialog project-modal" aria-labelledby="audit-dialog-title">
+      <div class="dialog-panel project-dialog-panel">
+        <div class="dialog-glow-rim" aria-hidden="true"></div>
+
         <div class="dialog-header">
           <div>
-            <div class="eyebrow">CUSTOM SOFTWARE &amp; ENGINEERING</div>
-            <h2 id="audit-dialog-title" class="dialog-title">${auditForm.title}</h2>
+            <div class="project-step-meta">
+              <span class="eyebrow" id="project-step-eyebrow">STEP 01 / 02 &middot; CONFIGURE SCOPE</span>
+            </div>
+            <h2 id="audit-dialog-title" class="dialog-title">Start your build.</h2>
           </div>
-          <button type="button" class="dialog-close" data-close-dialog aria-label="Close project dialog">&times;</button>
+          <button type="button" class="dialog-close" data-close-dialog aria-label="Close project configurator">&times;</button>
         </div>
-        <p class="dialog-subtitle">${auditForm.subtitle}</p>
+
+        <!-- Animated Progress Bar -->
+        <div class="project-progress-bar" aria-hidden="true">
+          <span class="project-progress-fill" id="project-progress-fill" style="width: 50%"></span>
+        </div>
 
         <form id="audit-form" class="audit-form" novalidate>
-          <div class="form-field">
-            <label for="audit-name">Your name</label>
-            <input
-              type="text"
-              id="audit-name"
-              name="name"
-              required
-              autocomplete="name"
-              placeholder="e.g. Alex Weber"
-              data-error="audit-name-error"
-            />
-            <div id="audit-name-error" class="error-msg">
-              <span role="img" aria-label="Error">!</span> Please enter your name.
+          <!-- STEP 1: Interactive Visual Scope Picker -->
+          <div class="project-step is-active" id="project-step-1">
+            <div class="cfg-group">
+              <span class="cfg-label" id="build-type-label">What are we engineering? <small>(select one or more)</small></span>
+              <div class="cfg-cards-grid" role="group" aria-labelledby="build-type-label">
+                ${BUILD_TYPES.map(
+                  (b, idx) => `
+                  <button
+                    type="button"
+                    class="cfg-type-card ${idx === 0 ? 'is-selected' : ''}"
+                    data-build-type="${b.title}"
+                    aria-pressed="${idx === 0 ? 'true' : 'false'}"
+                  >
+                    <span class="cfg-card-icon" aria-hidden="true">${b.icon}</span>
+                    <span class="cfg-card-text">
+                      <strong>${b.title}</strong>
+                      <span>${b.sub}</span>
+                    </span>
+                    <span class="cfg-card-check" aria-hidden="true">&#10003;</span>
+                  </button>
+                `
+                ).join('')}
+              </div>
+            </div>
+
+            <div class="cfg-row-split">
+              <fieldset class="cfg-fieldset">
+                <legend class="cfg-label">Target timeline</legend>
+                <div class="cfg-pills-wrap">
+                  ${TIMELINES.map(
+                    (t, i) => `
+                    <label class="cfg-radio-pill">
+                      <input type="radio" name="timeline" value="${t}" ${i === 1 ? 'checked' : ''} />
+                      <span>${t}</span>
+                    </label>
+                  `
+                  ).join('')}
+                </div>
+              </fieldset>
+
+              <fieldset class="cfg-fieldset">
+                <legend class="cfg-label">Engagement</legend>
+                <div class="cfg-pills-wrap">
+                  ${SCOPES.map(
+                    (s, i) => `
+                    <label class="cfg-radio-pill">
+                      <input type="radio" name="scope" value="${s}" ${i === 1 ? 'checked' : ''} />
+                      <span>${s}</span>
+                    </label>
+                  `
+                  ).join('')}
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="project-step-footer">
+              <span class="step-footer-hint">30-min architecture call &middot; 100% code ownership</span>
+              <button type="button" class="btn-yellow-pill" id="project-next-btn">
+                Continue <span aria-hidden="true">&rarr;</span>
+              </button>
             </div>
           </div>
 
-          <div class="form-field">
-            <label for="audit-email">Work email</label>
-            <span id="audit-email-hint" class="field-hint">Format: name@company.com</span>
-            <input
-              type="email"
-              id="audit-email"
-              name="email"
-              required
-              autocomplete="email"
-              placeholder="alex@company.example"
-              aria-describedby="audit-email-hint"
-              data-error="audit-email-error"
-            />
-            <div id="audit-email-error" class="error-msg">
-              <span role="img" aria-label="Error">!</span> Enter a valid work email address in the format name@company.com.
+          <!-- STEP 2: Contact Details & Brief -->
+          <div class="project-step" id="project-step-2" hidden>
+            <div class="selected-scope-bar">
+              <div class="selected-scope-chips" id="selected-scope-chips"></div>
+              <button type="button" class="scope-back-btn" id="project-back-btn">&larr; Edit scope</button>
             </div>
-          </div>
 
-          <div class="form-row-2">
-            <div class="form-field">
-              <label for="audit-website">Company or project URL</label>
-              <span id="audit-website-hint" class="field-hint">Include https://</span>
-              <input
-                type="url"
-                id="audit-website"
-                name="website"
-                required
-                autocomplete="url"
-                placeholder="https://example.com"
-                aria-describedby="audit-website-hint"
-                data-error="audit-website-error"
-              />
-              <div id="audit-website-error" class="error-msg">
-                <span role="img" aria-label="Error">!</span> Enter a valid URL starting with https://.
+            <div class="form-row-2">
+              <div class="form-field">
+                <label for="audit-name">Your name</label>
+                <input
+                  type="text"
+                  id="audit-name"
+                  name="name"
+                  required
+                  autocomplete="name"
+                  placeholder="Alex Weber"
+                  data-error="audit-name-error"
+                />
+                <div id="audit-name-error" class="error-msg">
+                  <span role="img" aria-label="Error">!</span> Please enter your name.
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label for="audit-email">Work email</label>
+                <input
+                  type="email"
+                  id="audit-email"
+                  name="email"
+                  required
+                  autocomplete="email"
+                  placeholder="alex@company.com"
+                  data-error="audit-email-error"
+                />
+                <div id="audit-email-error" class="error-msg">
+                  <span role="img" aria-label="Error">!</span> Enter a valid email (e.g. alex@company.com).
+                </div>
               </div>
             </div>
 
             <div class="form-field">
-              <label for="audit-city">What are we building?</label>
+              <label for="audit-company">Company or current website <span class="opt-tag">(optional)</span></label>
               <input
                 type="text"
-                id="audit-city"
-                name="city"
-                required
-                placeholder="Website, SaaS, or Company System"
-                data-error="audit-city-error"
+                id="audit-company"
+                name="company"
+                autocomplete="organization"
+                placeholder="Acme Corp / acme.com"
               />
-              <div id="audit-city-error" class="error-msg">
-                <span role="img" aria-label="Error">!</span> Tell us what type of software you need.
-              </div>
             </div>
-          </div>
 
-          <div class="form-field">
-            <label for="audit-query">Key goals or integrations (optional)</label>
-            <input
-              type="text"
-              id="audit-query"
-              name="query"
-              placeholder="e.g. Stripe billing, internal ERP, custom dashboard"
-            />
-          </div>
+            <div class="form-field">
+              <label for="audit-brief">Project brief <span class="opt-tag">(optional)</span></label>
+              <textarea
+                id="audit-brief"
+                name="brief"
+                rows="3"
+                placeholder="Key workflows, integrations, or goals..."
+              ></textarea>
+            </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn-yellow-pill">${auditForm.submitLabel} &rarr;</button>
-            <span class="form-demo-note">${auditForm.note}</span>
+            <div class="project-step-footer">
+              <button type="button" class="scope-back-btn" id="project-back-btn-2">&larr; Back</button>
+              <button type="submit" class="btn-yellow-pill" id="project-submit-btn">
+                <span class="submit-btn-label">Deploy brief &rarr;</span>
+              </button>
+            </div>
           </div>
         </form>
 
-        <div id="audit-success" class="audit-success" hidden>
-          <div class="success-badge">RECEIVED</div>
-          <h3>${auditForm.successTitle}</h3>
-          <p>${auditForm.successBody}</p>
-          <div class="success-summary" id="audit-success-summary"></div>
-          <button type="button" class="btn-outline-light" id="audit-reset-btn">Submit another enquiry</button>
+        <!-- STEP 3: Animated Deployment Success State -->
+        <div id="audit-success" class="audit-success-stage" hidden>
+          <div class="success-ring-wrap" aria-hidden="true">
+            <svg class="success-ring-svg" viewBox="0 0 72 72" fill="none">
+              <circle class="sr-circle" cx="36" cy="36" r="32" stroke="#22c1ec" stroke-width="2.5" />
+              <path class="sr-check" d="M22 36.5L31.5 46L50 27" stroke="#22c1ec" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+
+          <div class="success-status-pills" aria-hidden="true">
+            <span class="ss-pill is-lit">&#10003; SCOPE LOCKED</span>
+            <span class="ss-pill is-lit" style="animation-delay:0.12s">&#10003; BRIEF COMPILED</span>
+            <span class="ss-pill is-lit" style="animation-delay:0.24s">&#10003; READY TO SHIP</span>
+          </div>
+
+          <h3 class="success-heading">Brief ready for kickoff.</h3>
+          <p class="success-sub">Your architecture scope is packaged below.</p>
+
+          <div class="success-summary-card" id="audit-success-summary"></div>
+
+          <div class="success-actions-row">
+            <a id="audit-mailto-link" href="mailto:${brand.email}" class="btn-yellow-pill">
+              Send via Email &rarr;
+            </a>
+            <button type="button" class="btn-outline-light" id="audit-reset-btn">Configure another</button>
+          </div>
         </div>
       </div>
     </dialog>
 
-    <!-- Watch the Film Modal -->
+    <!-- Watch the Film / Chapters Modal -->
     <dialog id="film-dialog" class="zeroth-dialog" aria-labelledby="film-dialog-title">
       <div class="dialog-panel dialog-panel-wide">
+        <div class="dialog-glow-rim" aria-hidden="true"></div>
         <div class="dialog-header">
           <div>
             <div class="eyebrow">SCROLL STORY OVERVIEW</div>
             <h2 id="film-dialog-title" class="dialog-title">${filmModal.title}</h2>
           </div>
-          <button type="button" class="dialog-close" data-close-dialog aria-label="Close film modal">&times;</button>
+          <button type="button" class="dialog-close" data-close-dialog aria-label="Close chapters modal">&times;</button>
         </div>
         <p class="dialog-subtitle">${filmModal.subtitle}</p>
         <div class="film-chapters">
@@ -144,12 +235,13 @@ export function renderModalsHTML(): string {
       </div>
     </dialog>
 
-    <!-- Legal Modal (Impressum / Datenschutz) -->
+    <!-- Legal Modal -->
     <dialog id="legal-dialog" class="zeroth-dialog" aria-labelledby="legal-dialog-title">
       <div class="dialog-panel">
+        <div class="dialog-glow-rim" aria-hidden="true"></div>
         <div class="dialog-header">
           <div>
-            <div class="eyebrow">REFERENCE STUDY NOTICE</div>
+            <div class="eyebrow">LEGAL</div>
             <h2 id="legal-dialog-title" class="dialog-title">${legal.impressumTitle}</h2>
           </div>
           <button type="button" class="dialog-close" data-close-dialog aria-label="Close legal notice">&times;</button>
@@ -161,6 +253,7 @@ export function renderModalsHTML(): string {
 }
 
 export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void): ModalsController {
+  const burstLayer = document.getElementById('portal-burst-layer')!;
   const auditDialog = document.getElementById('audit-dialog') as HTMLDialogElement;
   const filmDialog = document.getElementById('film-dialog') as HTMLDialogElement;
   const legalDialog = document.getElementById('legal-dialog') as HTMLDialogElement;
@@ -168,28 +261,147 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
   const legalBody = document.getElementById('legal-dialog-body')!;
 
   const form = document.getElementById('audit-form') as HTMLFormElement;
+  const step1 = document.getElementById('project-step-1') as HTMLElement;
+  const step2 = document.getElementById('project-step-2') as HTMLElement;
+  const stepEyebrow = document.getElementById('project-step-eyebrow') as HTMLElement;
+  const dialogTitle = document.getElementById('audit-dialog-title') as HTMLElement;
+  const progressFill = document.getElementById('project-progress-fill') as HTMLElement;
+  const nextBtn = document.getElementById('project-next-btn') as HTMLButtonElement;
+  const backBtn1 = document.getElementById('project-back-btn') as HTMLButtonElement;
+  const backBtn2 = document.getElementById('project-back-btn-2') as HTMLButtonElement;
+  const scopeChipsEl = document.getElementById('selected-scope-chips') as HTMLElement;
+
   const successBox = document.getElementById('audit-success') as HTMLElement;
   const successSummary = document.getElementById('audit-success-summary') as HTMLElement;
+  const mailtoLink = document.getElementById('audit-mailto-link') as HTMLAnchorElement;
   const resetBtn = document.getElementById('audit-reset-btn') as HTMLButtonElement;
 
-  // Close buttons & backdrop click
+  const isReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Trigger a luminous DEPLOY-cyan portal shockwave from the exact clicked button & morph dialog open
+  const openDialogWithPortal = (dlg: HTMLDialogElement, triggerEl?: HTMLElement | null) => {
+    const panel = dlg.querySelector<HTMLElement>('.dialog-panel');
+    if (triggerEl && !isReduced()) {
+      const r = triggerEl.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+
+      // Spawn expanding shockwave ring + glow burst from button center
+      const wave = document.createElement('div');
+      wave.className = 'portal-shockwave';
+      wave.style.left = `${cx}px`;
+      wave.style.top = `${cy}px`;
+      burstLayer.appendChild(wave);
+      window.setTimeout(() => wave.remove(), 750);
+
+      // Compute transform-origin relative to viewport center so panel unfolds out of the clicked button
+      const ox = cx - window.innerWidth / 2;
+      const oy = cy - window.innerHeight / 2;
+      if (panel) {
+        panel.style.setProperty('--origin-x', `${(ox * 0.38).toFixed(0)}px`);
+        panel.style.setProperty('--origin-y', `${(oy * 0.38).toFixed(0)}px`);
+      }
+    } else if (panel) {
+      panel.style.setProperty('--origin-x', '0px');
+      panel.style.setProperty('--origin-y', '22px');
+    }
+
+    dlg.classList.remove('is-closing');
+    if (!dlg.open) dlg.showModal();
+    requestAnimationFrame(() => {
+      dlg.classList.add('is-open');
+    });
+  };
+
+  const closeDialogSmoothly = (dlg: HTMLDialogElement) => {
+    if (!dlg.open) return;
+    if (isReduced()) {
+      dlg.classList.remove('is-open', 'is-closing');
+      dlg.close();
+      return;
+    }
+    dlg.classList.remove('is-open');
+    dlg.classList.add('is-closing');
+    window.setTimeout(() => {
+      dlg.classList.remove('is-closing');
+      if (dlg.open) dlg.close();
+    }, 240);
+  };
+
   [auditDialog, filmDialog, legalDialog].forEach((dlg) => {
     dlg.querySelectorAll('[data-close-dialog]').forEach((btn) => {
-      btn.addEventListener('click', () => dlg.close());
+      btn.addEventListener('click', () => closeDialogSmoothly(dlg));
     });
     dlg.addEventListener('click', (e) => {
-      if (e.target === dlg) dlg.close();
+      if (e.target === dlg) closeDialogSmoothly(dlg);
+    });
+    dlg.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeDialogSmoothly(dlg);
     });
   });
 
-  // Film chapter jump buttons
   filmDialog.querySelectorAll<HTMLButtonElement>('.film-chapter-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.chapterIdx || '0');
-      filmDialog.close();
+      closeDialogSmoothly(filmDialog);
       onJumpToChapter(idx);
     });
   });
+
+  // Step 1: Multi-select build type cards
+  const typeCards = Array.from(form.querySelectorAll<HTMLButtonElement>('.cfg-type-card'));
+  typeCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const selectedCount = typeCards.filter((c) => c.classList.contains('is-selected')).length;
+      const isSelected = card.classList.contains('is-selected');
+      // Keep at least 1 selected
+      if (isSelected && selectedCount <= 1) return;
+      const next = !isSelected;
+      card.classList.toggle('is-selected', next);
+      card.setAttribute('aria-pressed', String(next));
+    });
+  });
+
+  const getScopeState = () => {
+    const types = typeCards
+      .filter((c) => c.classList.contains('is-selected'))
+      .map((c) => c.dataset.buildType || '');
+    const timeline =
+      (form.querySelector<HTMLInputElement>('input[name="timeline"]:checked')?.value) || '1–2 Months';
+    const scope =
+      (form.querySelector<HTMLInputElement>('input[name="scope"]:checked')?.value) || 'Full System';
+    return { types, timeline, scope };
+  };
+
+  const showStep = (stepNum: 1 | 2) => {
+    if (stepNum === 1) {
+      step2.hidden = true;
+      step2.classList.remove('is-active');
+      step1.hidden = false;
+      requestAnimationFrame(() => step1.classList.add('is-active'));
+      stepEyebrow.innerHTML = 'STEP 01 / 02 &middot; CONFIGURE SCOPE';
+      dialogTitle.textContent = 'Start your build.';
+      progressFill.style.width = '50%';
+    } else {
+      const { types, timeline, scope } = getScopeState();
+      scopeChipsEl.innerHTML = [...types, timeline, scope]
+        .map((label) => `<span class="summary-chip">${label}</span>`)
+        .join('');
+      step1.hidden = true;
+      step1.classList.remove('is-active');
+      step2.hidden = false;
+      requestAnimationFrame(() => step2.classList.add('is-active'));
+      stepEyebrow.innerHTML = 'STEP 02 / 02 &middot; YOUR DETAILS';
+      dialogTitle.textContent = 'Where do we send the plan?';
+      progressFill.style.width = '100%';
+      document.getElementById('audit-name')?.focus();
+    }
+  };
+
+  nextBtn.addEventListener('click', () => showStep(2));
+  backBtn1.addEventListener('click', () => showStep(1));
+  backBtn2.addEventListener('click', () => showStep(1));
 
   // Accessible :user-invalid + aria-invalid + aria-describedby sync with polite live region
   const announcer = document.createElement('div');
@@ -266,8 +478,8 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
     }
   };
 
-  const fields = Array.from(form.querySelectorAll<HTMLInputElement>('input'));
-  fields.forEach((f) => f.setAttribute('aria-invalid', 'false'));
+  const requiredFields = Array.from(form.querySelectorAll<HTMLInputElement>('input[required]'));
+  requiredFields.forEach((f) => f.setAttribute('aria-invalid', 'false'));
 
   form.addEventListener(
     'blur',
@@ -296,7 +508,7 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     let firstInvalid: HTMLInputElement | null = null;
-    for (const f of fields) {
+    for (const f of requiredFields) {
       if (!f.validity.valid) {
         announced.add(f);
         syncAria(f, false, true);
@@ -312,17 +524,41 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
 
     const data = new FormData(form);
     const name = String(data.get('name') || '').trim();
-    const website = String(data.get('website') || '').trim();
-    const city = String(data.get('city') || '').trim();
+    const email = String(data.get('email') || '').trim();
+    const company = String(data.get('company') || '').trim();
+    const brief = String(data.get('brief') || '').trim();
+    const { types, timeline, scope } = getScopeState();
 
-    successSummary.textContent = `Prepared for ${name} · ${website} · ${city}`;
+    successSummary.innerHTML = `
+      <div class="ss-row"><span>CLIENT</span><strong>${name}${company ? ` &middot; ${company}` : ''}</strong></div>
+      <div class="ss-row"><span>BUILD</span><strong>${types.join(', ')}</strong></div>
+      <div class="ss-row"><span>TIMELINE</span><strong>${timeline} &middot; ${scope}</strong></div>
+      <div class="ss-row"><span>EMAIL</span><strong>${email}</strong></div>
+    `;
+
+    const subject = encodeURIComponent(`DEPLOY Project Brief — ${types.join(' + ')} (${company || name})`);
+    const bodyLines = [
+      `Name: ${name}`,
+      `Email: ${email}`,
+      company ? `Company: ${company}` : '',
+      `Systems: ${types.join(', ')}`,
+      `Timeline: ${timeline}`,
+      `Engagement: ${scope}`,
+      brief ? `\nBrief:\n${brief}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    mailtoLink.href = `mailto:${SITE_CONFIG.brand.email}?subject=${subject}&body=${encodeURIComponent(bodyLines)}`;
+
+    stepEyebrow.innerHTML = 'DEPLOYED &middot; BRIEF READY';
+    dialogTitle.textContent = 'Let’s build.';
     form.hidden = true;
     successBox.hidden = false;
   });
 
   resetBtn.addEventListener('click', () => {
     form.reset();
-    fields.forEach((f) => {
+    requiredFields.forEach((f) => {
       f.setAttribute('aria-invalid', 'false');
       f.classList.remove('user-invalid-fallback');
       linkError(f, false);
@@ -331,22 +567,22 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
     });
     successBox.hidden = true;
     form.hidden = false;
-    fields[0]?.focus();
+    showStep(1);
   });
 
   return {
-    openAudit() {
-      if (!auditDialog.open) auditDialog.showModal();
+    openAudit(triggerEl) {
+      openDialogWithPortal(auditDialog, triggerEl);
     },
-    openFilm() {
-      if (!filmDialog.open) filmDialog.showModal();
+    openFilm(triggerEl) {
+      openDialogWithPortal(filmDialog, triggerEl);
     },
-    openLegal(kind) {
+    openLegal(kind, triggerEl) {
       const { legal } = SITE_CONFIG;
       legalTitle.textContent = kind === 'impressum' ? legal.impressumTitle : legal.datenschutzTitle;
       const paragraphs = kind === 'impressum' ? legal.impressumBody : legal.datenschutzBody;
       legalBody.innerHTML = paragraphs.map((p) => `<p>${p}</p>`).join('');
-      if (!legalDialog.open) legalDialog.showModal();
+      openDialogWithPortal(legalDialog, triggerEl);
     },
   };
 }
