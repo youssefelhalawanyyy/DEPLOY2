@@ -259,11 +259,14 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
   // Lazy-load the segmented 3D GLB logo only when the user approaches the Scroll Story section
   let logo3D: DeployLogo3DController | null = null;
   let logo3DLoading = false;
+  let logoTravelT = 0;
+  let logoOpacity = 0;
   const ensureLogo3D = () => {
     if (logo3D || logo3DLoading || !logo3DHost || !SITE_CONFIG.assets.zerothLogo.glbUrl) return;
     logo3DLoading = true;
     import('../three/DeployLogo3D').then(({ mountDeployLogo3D }) => {
       logo3D = mountDeployLogo3D(logo3DHost, SITE_CONFIG.assets.zerothLogo.glbUrl!, logoFallback);
+      logo3D.setProgress(logoTravelT, logoOpacity);
     });
   };
   const storyIo = new IntersectionObserver(
@@ -489,10 +492,9 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
       });
     }
 
-    if (logo3D) {
-      const logoTravelT = invLerp(0.765, 0.975, p);
-      logo3D.setProgress(logoTravelT, finaleIn);
-    }
+    logoTravelT = invLerp(0.765, 0.975, p);
+    logoOpacity = finaleIn;
+    logo3D?.setProgress(logoTravelT, logoOpacity);
 
     // Hide left copy panel during finale
     copyPanel.style.opacity = (1 - smooth(invLerp(0.73, 0.765, p))).toFixed(3);

@@ -83,10 +83,8 @@ export function mountDeployLogo3D(
   const toLogoSpace = new THREE.Matrix3();
   let modelLoaded = false;
   let scrollT = 0;
-  let currentT = 0;
   let currentOpacity = 0;
   let rafId = 0;
-  const clock = new THREE.Clock();
 
   const loader = new GLTFLoader();
   loader.load(
@@ -145,6 +143,7 @@ export function mountDeployLogo3D(
       }
 
       modelLoaded = true;
+      scheduleFrame();
       if (fallbackEl) {
         fallbackEl.style.display = 'none';
       }
@@ -166,19 +165,25 @@ export function mountDeployLogo3D(
     exhaust.width = Math.round(w * resolution);
     exhaust.height = Math.round(h * resolution);
     plume?.setTransform(resolution, 0, 0, resolution, 0, 0);
+    scheduleFrame();
   };
 
   resize();
   const ro = new ResizeObserver(resize);
   ro.observe(container);
+  reducedMotion.addEventListener('change', scheduleFrame);
 
-  const renderFrame = () => {
-    rafId = window.requestAnimationFrame(renderFrame);
+  function scheduleFrame() {
+    if (!rafId && modelLoaded && currentOpacity > 0.005) {
+      rafId = window.requestAnimationFrame(renderFrame);
+    }
+  }
+
+  function renderFrame() {
+    rafId = 0;
     if (!modelLoaded || currentOpacity <= 0.005) return;
 
-    const dt = Math.min(clock.getDelta(), 0.05);
     const reduced = reducedMotion.matches;
-    currentT = THREE.MathUtils.damp(currentT, scrollT, 11, dt);
 
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -188,8 +193,8 @@ export function mountDeployLogo3D(
     const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
     const halfW = halfH * camera.aspect;
 
-    const glide = reduced ? 1 : smooth(clamp01(currentT / 0.23));
-    const launch = reduced ? 0 : clamp01((currentT - 0.26) / 0.74);
+    const glide = reduced ? 1 : smooth(clamp01(scrollT / 0.23));
+    const launch = reduced ? 0 : clamp01((scrollT - 0.26) / 0.74);
     const logoWidth = Math.min(width * (narrow ? 0.27 : 0.19), height * 0.245, 250);
     const landingX = -halfW * (narrow ? 0.63 : 0.73);
     const landingY = -halfH * (narrow ? 0.47 : 0.45);
@@ -280,19 +285,22 @@ export function mountDeployLogo3D(
     }
 
     renderer!.render(scene, camera);
-  };
-
-  renderFrame();
+  }
 
   return {
     setProgress(t: number, visibleOpacity: number) {
-      scrollT = clamp01(t);
-      currentOpacity = clamp01(visibleOpacity);
+      const nextT = clamp01(t);
+      const nextOpacity = clamp01(visibleOpacity);
+      if (nextT === scrollT && nextOpacity === currentOpacity) return;
+      scrollT = nextT;
+      currentOpacity = nextOpacity;
       container.style.opacity = currentOpacity.toFixed(3);
+      scheduleFrame();
     },
     destroy() {
       window.cancelAnimationFrame(rafId);
       ro.disconnect();
+      reducedMotion.removeEventListener('change', scheduleFrame);
       pmrem.dispose();
       envTex.dispose();
       renderer?.dispose();

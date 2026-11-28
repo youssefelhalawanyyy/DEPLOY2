@@ -793,8 +793,10 @@ function bootstrap() {
   // Uses frame-rate-independent exponential damping so mouse-wheel ticks & fast flicks
   // glide with weighted cinematic smoothness without hijacking native browser scrolling.
   let targetScrollNeeded = true;
+  let scrollFrame = 0;
   const onScroll = () => {
     targetScrollNeeded = true;
+    if (!scrollFrame) scrollFrame = window.requestAnimationFrame(tickScroll);
   };
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
@@ -824,22 +826,26 @@ function bootstrap() {
   let targetServP = 0;
   let targetProcP = 0;
   let initializedTargets = false;
-  let lastFrameTime = performance.now();
+  let lastFrameTime = 0;
+  let appliedStoryP = NaN;
+  let wasMoving = false;
+  let appliedServiceP = NaN;
+  let appliedProcessP = NaN;
 
   const impactScroll = initImpactScroll(resultsSection);
   const mobileScroll = initMobileScroll(processSection, clientsSection, contactSection);
   motionMq.addEventListener('change', onScroll);
 
-  const tickScroll = (now: number) => {
-    window.requestAnimationFrame(tickScroll);
-    const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+  function tickScroll(now: number) {
+    scrollFrame = 0;
+    const dt = lastFrameTime ? Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000)) : 1 / 60;
     lastFrameTime = now;
 
     const vh = window.innerHeight || 800;
     const reduced = motionMq.matches;
-    const firstPhoneFrame = !initializedTargets && mobileScroll.phone.matches;
+    const needsMeasure = targetScrollNeeded || !initializedTargets;
 
-    if (targetScrollNeeded || !initializedTargets) {
+    if (needsMeasure) {
       targetScrollNeeded = false;
 
       const isMobile = mobileScroll.phone.matches;
@@ -896,14 +902,15 @@ function bootstrap() {
       const inContact = contactSection.getBoundingClientRect().top <= headerMid && !inFooter;
 
       const isLightHeader = inFooter || (!inContact && (storyLight || inServices || inProcess || inClients));
-      header.dataset.theme = isLightHeader ? 'light' : 'dark';
+      const theme = isLightHeader ? 'light' : 'dark';
+      if (header.dataset.theme !== theme) header.dataset.theme = theme;
     }
 
     // Smooth exponential damping factor (snaps instantly when reduced-motion is on)
     const damp = reduced ? 1 : 1 - Math.exp(-dt * 6.2);
-    mobileScroll.update(damp);
-    const impactTurn = impactScroll.update(damp);
-    lightKnotCtrl?.setScrollProgress(impactTurn);
+    const mobileMoving = mobileScroll.update(damp);
+    const impact = impactScroll.update(damp);
+    lightKnotCtrl?.setScrollProgress(impact.turn);
     const diffSum =
       Math.abs(targetHeroP - smoothHeroP) +
       Math.abs(targetAnimP - smoothAnimP) +
@@ -912,16 +919,23 @@ function bootstrap() {
       Math.abs(targetServP - smoothServP) +
       Math.abs(targetProcP - smoothProcP);
 
-    if (diffSum < 0.00015 && initializedTargets && damp < 1 && !firstPhoneFrame) {
-      return;
+    const moving = diffSum >= 0.00015;
+    if (moving || mobileMoving || impact.moving) {
+      scrollFrame = window.requestAnimationFrame(tickScroll);
+    } else {
+      lastFrameTime = 0;
     }
+    const apply = needsMeasure || moving || wasMoving;
+    wasMoving = moving;
+    if (!apply) return;
+    const step = moving ? damp : 1;
 
-    smoothHeroP += (targetHeroP - smoothHeroP) * damp;
-    smoothAnimP += (targetAnimP - smoothAnimP) * damp;
-    smoothStatsVis += (targetStatsVis - smoothStatsVis) * damp;
-    smoothStoryP += (targetStoryP - smoothStoryP) * damp;
-    smoothServP += (targetServP - smoothServP) * damp;
-    smoothProcP += (targetProcP - smoothProcP) * damp;
+    smoothHeroP += (targetHeroP - smoothHeroP) * step;
+    smoothAnimP += (targetAnimP - smoothAnimP) * step;
+    smoothStatsVis += (targetStatsVis - smoothStatsVis) * step;
+    smoothStoryP += (targetStoryP - smoothStoryP) * step;
+    smoothServP += (targetServP - smoothServP) * step;
+    smoothProcP += (targetProcP - smoothProcP) * step;
 
     // A. Hero scroll progress + physical depth parallax
     sphereCtrl.setScrollProgress(smoothHeroP);
@@ -947,17 +961,24 @@ function bootstrap() {
     whyNowStats.style.transform = `translate3d(0, ${((1 - smoothStatsVis) * 20).toFixed(1)}px, 0)`;
     updateSpeedingOdometer(whyNowStats, smoothStatsVis, dt, reduced);
 
-    // C. 9-Beat Scroll Story
-    storyCtrl.update(smoothStoryP);
+    // Each scene runs only when its own scroll position changes.
+    if (appliedStoryP !== smoothStoryP) {
+      storyCtrl.update(smoothStoryP);
+      appliedStoryP = smoothStoryP;
+    }
+    if (appliedServiceP !== smoothServP) {
+      servicesCtrl.update(smoothServP);
+      appliedServiceP = smoothServP;
+    }
+    if (appliedProcessP !== smoothProcP) {
+      processCtrl.update(smoothProcP);
+      appliedProcessP = smoothProcP;
+    }
+  }
 
-    // D. Services / Portfolio Scroll-Scrubbed FlexCarousel
-    servicesCtrl.update(smoothServP);
-
-    // E. Process 4-Step Curve
-    processCtrl.update(smoothProcP);
-  };
-
-  window.requestAnimationFrame(tickScroll);
+  const layoutObserver = new ResizeObserver(onScroll);
+  layoutObserver.observe(document.querySelector('main')!);
+  onScroll();
 }
 
 bootstrap();

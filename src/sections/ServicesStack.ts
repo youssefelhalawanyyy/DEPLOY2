@@ -1,4 +1,4 @@
-import { mountFlexCarousel, type FlexCarouselController, type FlexCarouselItem } from '../three/FlexCarouselEngine';
+import type { FlexCarouselController, FlexCarouselItem } from '../three/FlexCarouselEngine';
 import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
 import { splitHeadingForScroll } from '../effects/PageScrollChoreography';
 
@@ -460,26 +460,34 @@ export function initServicesStack(section: HTMLElement): ServicesController {
   let flexCtrl: FlexCarouselController | null = null;
 
   if (carouselHost) {
-    flexCtrl = mountFlexCarousel(carouselHost, {
-      items: toCarouselItems(PORTFOLIO_PROJECTS[0]),
-      cardHeight: 0.56,
-      gap: 12,
-      squeeze: 0.2,
-      focusOnClick: true,
-      captions: true,
-      fit: 'natural',
-      radius: 0,
-      lensWidth: 0.74,
-      lensHeight: 1.18,
-      tilt: 62,
-      roundness: 1,
-      bend: 0.34,
-      reach: 0.38,
-      curl: 'twist',
-      dispersion: 0.45,
-      liquid: 0,
-      followCursor: false,
-    });
+    const carouselObserver = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      carouselObserver.disconnect();
+      void import('../three/FlexCarouselEngine').then(({ mountFlexCarousel }) => {
+        flexCtrl = mountFlexCarousel(carouselHost, {
+          items: toCarouselItems(PORTFOLIO_PROJECTS[activeIdx]),
+          cardHeight: 0.56,
+          gap: 12,
+          squeeze: 0.2,
+          focusOnClick: true,
+          captions: true,
+          fit: 'natural',
+          radius: 0,
+          lensWidth: 0.74,
+          lensHeight: 1.18,
+          tilt: 62,
+          roundness: 1,
+          bend: 0.34,
+          reach: 0.38,
+          curl: 'twist',
+          dispersion: 0.45,
+          liquid: 0,
+          followCursor: false,
+        });
+        flexCtrl.setScrollProgress(latestScrollP);
+      });
+    }, { rootMargin: '600px' });
+    carouselObserver.observe(carouselHost);
   }
 
   const selectTab = (nextIdx: number, moveFocus = false) => {

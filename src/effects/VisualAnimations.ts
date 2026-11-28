@@ -40,6 +40,13 @@ export function mountGridSignalCanvas(host: HTMLElement): () => void {
   const io = new IntersectionObserver(
     (entries) => {
       visible = entries[0]?.isIntersecting ?? true;
+      if (visible && !raf) {
+        prev = performance.now();
+        raf = window.requestAnimationFrame(draw);
+      } else if (!visible) {
+        window.cancelAnimationFrame(raf);
+        raf = 0;
+      }
     },
     { rootMargin: '150px' }
   );

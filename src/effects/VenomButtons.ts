@@ -285,12 +285,14 @@ export function initVenomButtons(selector = '.btn-yellow-pill, .nav-audit-btn'):
     ptr.x = e.clientX;
     ptr.y = e.clientY;
     ptr.inside = true;
+    wake();
   };
   const onLeave = () => {
     ptr.inside = false;
   };
   window.addEventListener('pointermove', onMove, { passive: true });
   document.addEventListener('pointerleave', onLeave);
+  window.addEventListener('scroll', wake, { passive: true });
 
   // Active button & simulation state
   let activeBtn: HTMLElement | null = null;
@@ -459,8 +461,15 @@ export function initVenomButtons(selector = '.btn-yellow-pill, .nav-audit-btn'):
   let prev = -1;
   let t0 = -1;
 
+  function wake() {
+    if (!raf && ptr.inside && !reducedMq.matches) {
+      prev = -1;
+      raf = window.requestAnimationFrame(frame);
+    }
+  }
+
   const frame = (now: number) => {
-    raf = window.requestAnimationFrame(frame);
+    raf = 0;
     if (reducedMq.matches) return;
     const dt = prev < 0 ? 0 : Math.min(0.033, (now - prev) / 1000);
     prev = now;
@@ -489,6 +498,8 @@ export function initVenomButtons(selector = '.btn-yellow-pill, .nav-audit-btn'):
         return;
       }
     }
+
+    raf = window.requestAnimationFrame(frame);
 
     if (!activeBtn || !document.contains(activeBtn)) {
       mode = 'idle';
@@ -775,12 +786,11 @@ export function initVenomButtons(selector = '.btn-yellow-pill, .nav-audit-btn'):
     }
   };
 
-  raf = window.requestAnimationFrame(frame);
-
   return () => {
     window.cancelAnimationFrame(raf);
     window.removeEventListener('resize', resize);
     window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('scroll', wake);
     document.removeEventListener('pointerleave', onLeave);
     glCanvas.remove();
     webCanvas.remove();

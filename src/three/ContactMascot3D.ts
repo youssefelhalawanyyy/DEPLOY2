@@ -194,6 +194,13 @@ export function mountContactMascot3D(
   const visIo = new IntersectionObserver(
     (entries) => {
       isVisible = entries[0]?.isIntersecting ?? true;
+      if (isVisible && !rafId) {
+        clock.getDelta();
+        rafId = window.requestAnimationFrame(animate);
+      } else if (!isVisible) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
     },
     { rootMargin: '250px' }
   );

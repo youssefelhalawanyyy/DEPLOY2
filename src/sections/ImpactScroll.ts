@@ -50,20 +50,26 @@ export function initImpactScroll(section: HTMLElement) {
       initialized = true;
     },
     update(damping: number) {
+      let moving = false;
       steps.forEach((element, index) => {
         reveals[index] += (revealTargets[index] - reveals[index]) * damping;
+        const unsettled = Math.abs(revealTargets[index] - reveals[index]) >= 0.0005;
+        if (!unsettled) reveals[index] = revealTargets[index];
+        moving ||= unsettled;
         const value = reveals[index].toFixed(3);
         if (element.style.getPropertyValue('--impact-reveal') !== value) {
           element.style.setProperty('--impact-reveal', value);
         }
       });
       turn += (turnTarget - turn) * damping;
+      moving ||= Math.abs(turnTarget - turn) >= 0.0005;
+      if (!moving) turn = turnTarget;
       const value = turn.toFixed(3);
       if (value !== drawnTurn) {
         stage.style.setProperty('--impact-turn', value);
         drawnTurn = value;
       }
-      return turn;
+      return { turn, moving };
     },
   };
 }

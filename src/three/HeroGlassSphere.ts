@@ -387,6 +387,13 @@ export function mountHeroGlassSphere(
   const io = new IntersectionObserver(
     (entries) => {
       isInViewport = entries[0]?.isIntersecting ?? true;
+      if (isInViewport && !rafId) {
+        clock.getDelta();
+        rafId = window.requestAnimationFrame(renderFrame);
+      } else if (!isInViewport) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
     },
     { rootMargin: '200px' }
   );
@@ -454,7 +461,7 @@ export function mountHeroGlassSphere(
     renderer!.render(scene, camera);
   };
 
-  renderFrame();
+  rafId = window.requestAnimationFrame(renderFrame);
 
   return {
     isWebGL: true,

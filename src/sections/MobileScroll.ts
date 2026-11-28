@@ -31,14 +31,17 @@ export function initMobileScroll(process: HTMLElement, clients: HTMLElement, con
       pending.set(mascot, progress(mascot.getBoundingClientRect(), viewport));
     },
     update(damping: number) {
-      if (!phone.matches) return;
+      if (!phone.matches) return false;
+      let moving = false;
       for (const [element, target] of pending) {
         const current = rendered.get(element) ?? target;
         if (Math.abs(target - current) < 0.0005 && rendered.has(element)) continue;
         const next = current + (target - current) * damping;
+        moving ||= Math.abs(target - next) >= 0.0005;
         rendered.set(element, next);
         element.style.setProperty('--phone-scroll', next.toFixed(4));
       }
+      return moving;
     },
   };
 }
