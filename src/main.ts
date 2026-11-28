@@ -2,6 +2,8 @@ import './styles/main.css';
 import { SITE_CONFIG } from './config/siteConfig';
 import { mountHeroGlassSphere } from './three/HeroGlassSphere';
 import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
+import { initMobileScroll } from './sections/MobileScroll';
+import { initImpactScroll } from './sections/ImpactScroll';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
@@ -14,6 +16,9 @@ import {
   bindSpeedingOdometerHover,
 } from './effects/SpeedingText';
 import { enhanceScrollTypographyAndSections } from './effects/PageScrollChoreography';
+import type { LightKnotController } from './three/LightKnotHero33';
+
+const impactEmailHint = 'Get a scoped architecture plan in 24 hours.';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -169,43 +174,120 @@ function buildAppHTML(): string {
       <!-- 4. SERVICES (6 Stacked Sticky Cards with Interactive Engineering Diagrams) -->
       ${renderServicesHTML()}
 
-      <!-- 5. RESULTS (Dark Theme + Animated Counters + Illustrative Case Cards) -->
-      <section id="results" class="results-section" aria-labelledby="results-heading">
-        <div class="container">
-          <div class="results-top-row">
-            <div>
-              <div class="eyebrow" data-scroll-copy>${cfg.results.eyebrow}</div>
-              <h2 id="results-heading" class="section-title-xl results-title" data-scroll-heading>
-                ${cfg.results.titleLine1}${cfg.results.titleLine2 ? `<br />${cfg.results.titleLine2}` : ''}
-              </h2>
-              ${cfg.results.subtitle ? `<p class="section-lead-dark" data-scroll-copy data-scroll-stagger="1">${cfg.results.subtitle}</p>` : ''}
-            </div>
-            <div class="results-badge" data-scroll-copy data-scroll-stagger="1">${cfg.results.badge}</div>
-          </div>
+      <!-- 5. IMPACT / HERO 33: INTEGRATION PLATFORM STAGE + DRAGGABLE KNOT OF LIGHT + EMAIL SIGNUP -->
+      <section id="results" class="results-section h33-impact-section" aria-labelledby="results-heading">
+        <div class="h33-ambient-glow" aria-hidden="true"></div>
 
-          <div class="results-metrics-grid" id="results-metrics-grid">
-            ${cfg.results.metrics
-              .map(
-                (m, mIdx) => `
-              <div class="result-metric" data-scroll-card data-scroll-stagger="${mIdx}">
-                <div class="rm-number">${renderSpeedingOdometerHTML(`${m.prefix || ''}${m.target}${m.suffix}`)}</div>
-                <div class="rm-label" data-scroll-copy>${m.label}</div>
-                <div class="rm-sublabel" data-scroll-copy data-scroll-stagger="1">${m.sublabel}</div>
+        <div class="container h33-container">
+          <div class="h33-hero-runway">
+            <div class="h33-hero-grid">
+              <!-- Impact copy and project form -->
+              <div class="h33-copy-col">
+                <div>
+                  <div class="h33-status-row" data-impact-reveal>
+                    <span class="h33-status-pill">
+                      <i aria-hidden="true"></i>
+                      ${cfg.results.eyebrow}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 id="results-heading" class="section-title-xl results-title h33-title" data-impact-reveal="title">
+                    ${cfg.results.titleLine1}${cfg.results.titleLine2 ? `<br />${cfg.results.titleLine2}` : ''}
+                  </h2>
+                </div>
+
+                <div>
+                  <p class="h33-lead" data-impact-reveal>
+                    ${
+                      cfg.results.subtitle ||
+                      'Websites, SaaS platforms, and internal company systems — wired into one resilient cloud architecture. We build, you lead.'
+                    }
+                  </p>
+                </div>
+
+                <!-- Hero 33 Accessible Inline Email Signup -->
+                <div>
+                  <form
+                    id="h33-email-form"
+                    class="h33-email-form"
+                    aria-labelledby="h33-email-label-id"
+                    action="https://formsubmit.co/${cfg.brand.email}"
+                    method="POST"
+                    novalidate
+                    data-impact-reveal="form"
+                  >
+                    <input type="text" name="_honey" tabindex="-1" aria-hidden="true" class="visually-hidden" autocomplete="off" />
+                    <label id="h33-email-label-id" for="h33-work-email" class="h33-email-label">
+                      Work email <span aria-hidden="true">*</span>
+                    </label>
+                    <div class="h33-input-shell" id="h33-input-shell">
+                      <input
+                        type="email"
+                        id="h33-work-email"
+                        name="email"
+                        autocomplete="email"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        enterkeyhint="send"
+                        placeholder="you@company.com"
+                        aria-describedby="h33-email-feedback"
+                        required
+                      />
+                      <button type="submit" class="btn-yellow-pill h33-submit-btn" id="h33-submit-btn">
+                        <span class="h33-submit-label">Start a project</span>
+                        <span aria-hidden="true">&rarr;</span>
+                      </button>
+                    </div>
+                    <div class="h33-form-meta-row">
+                      <span id="h33-email-feedback" class="h33-email-feedback" role="status" aria-live="polite">
+                        ${impactEmailHint}
+                      </span>
+                      <button type="button" class="h33-scope-link" id="h33-open-full-scope">
+                        Configure full scope &#8599;
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            `
-              )
-              .join('')}
+
+              <div class="h33-knot-motion">
+                <div class="h33-knot-col" data-impact-reveal="knot">
+                  <div class="h33-knot-host" id="h33-knot-host">
+                    <div class="h33-knot-fallback-orb" aria-hidden="true"></div>
+                  </div>
+                  <span class="h33-knot-hint" aria-hidden="true">Drag to rotate</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="results-cases-grid">
+          <div class="results-metrics-grid h33-metrics-ledger">
+            ${cfg.results.metrics.map(m => `
+              <div class="result-metric h33-metric-item" data-impact-reveal="metric">
+                <div class="rm-number">${m.prefix || ''}${m.target}${m.suffix}</div>
+                <div class="rm-label">${m.label}</div>
+                <div class="rm-sublabel">${m.sublabel}</div>
+              </div>
+            `).join('')}
+          </div>
+
+          <h3 class="h33-cases-title" data-scroll-copy>Live deployments</h3>
+          <div class="results-cases-grid h33-cases-grid">
             ${cfg.results.cases
               .map(
                 (c, idx) => `
-              <article class="case-card" data-scroll-card data-scroll-stagger="${idx}">
+              <article class="case-card h33-case-card" data-scroll-card data-scroll-stagger="${idx}">
                 <div class="case-meta" data-scroll-copy>${c.client} &middot; ${c.city}</div>
                 <p class="case-summary" data-scroll-copy data-scroll-stagger="1">${c.summary}</p>
-                <div class="case-meter" aria-hidden="true"><span class="case-meter-fill" style="--meter-w:${92 + idx * 3}%"></span></div>
-                <div class="case-pill">${c.pill}</div>
+                <div class="h33-case-foot">
+                  <div class="case-pill">${c.pill}</div>
+                  <button type="button" class="h33-case-inspect-btn" data-open-lr-project="${idx}">
+                    View build &#8599;
+                  </button>
+                </div>
               </article>
             `
               )
@@ -461,6 +543,12 @@ function bootstrap() {
   );
 
   document.addEventListener('pointerleave', () => setDeployHover(false));
+  const endHeroTouch = (event: PointerEvent) => {
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') setDeployHover(false);
+  };
+  window.addEventListener('pointerup', endHeroTouch, { passive: true });
+  window.addEventListener('pointercancel', endHeroTouch, { passive: true });
+
 
   // 1b. Mount ambient traveling cyan grid pulses & micro-nodes in Hero
   const heroStickyEl = heroSection.querySelector<HTMLElement>('.hero-sticky');
@@ -564,34 +652,136 @@ function bootstrap() {
     mascotIo.observe(contactSection);
   }
 
-  // 5. Scroll-driven Speeding Text Velocity Rollers for Results & Why-Now stats
-  const resultsMetricsGrid = document.getElementById('results-metrics-grid')!;
-  const updateResultsCounters = (progress: number, dt: number) => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    updateSpeedingOdometer(resultsMetricsGrid, progress, dt, reduced);
-  };
+  let lightKnotCtrl: LightKnotController | null = null;
+  const knotHostEl = document.getElementById('h33-knot-host');
+  if (knotHostEl) {
+    let knotMounted = false;
+    const knotIo = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !knotMounted) {
+          knotMounted = true;
+          knotIo.disconnect();
+          import('./three/LightKnotHero33').then(({ mountLightKnotHero33 }) => {
+            lightKnotCtrl = mountLightKnotHero33(knotHostEl);
+          });
+        }
+      },
+      { rootMargin: '650px' }
+    );
+    knotIo.observe(knotHostEl);
+  }
+
+  // Hero 33 Inline Email Signup Form (validates on blur & submit, clears on input, dispatches to studio email)
+  const h33Form = document.getElementById('h33-email-form') as HTMLFormElement | null;
+  const h33EmailInput = document.getElementById('h33-work-email') as HTMLInputElement | null;
+  const h33InputShell = document.getElementById('h33-input-shell');
+  const h33Feedback = document.getElementById('h33-email-feedback');
+  const h33SubmitBtn = document.getElementById('h33-submit-btn') as HTMLButtonElement | null;
+  const h33OpenScopeBtn = document.getElementById('h33-open-full-scope') as HTMLButtonElement | null;
+
+  if (h33Form && h33EmailInput && h33Feedback && h33SubmitBtn) {
+    let edited = false;
+
+    const setFieldError = (msg: string) => {
+      h33EmailInput.setAttribute('aria-invalid', 'true');
+      h33InputShell?.classList.add('is-invalid');
+      h33InputShell?.classList.remove('is-success');
+      h33Feedback.classList.add('is-error');
+      h33Feedback.classList.remove('is-success');
+      h33Feedback.textContent = msg;
+    };
+
+    const clearFieldError = () => {
+      h33EmailInput.removeAttribute('aria-invalid');
+      h33InputShell?.classList.remove('is-invalid');
+      if (h33Feedback.classList.contains('is-error')) {
+        h33Feedback.classList.remove('is-error');
+        h33Feedback.textContent = impactEmailHint;
+      }
+    };
+
+    h33EmailInput.addEventListener('input', () => {
+      edited = true;
+      h33EmailInput.setCustomValidity('');
+      clearFieldError();
+    });
+
+    h33EmailInput.addEventListener('blur', () => {
+      if (!edited || !h33EmailInput.value.trim()) return;
+      if (!h33EmailInput.validity.valid) {
+        setFieldError('Please enter a valid work email (e.g. you@company.com).');
+      }
+    });
+
+    h33OpenScopeBtn?.addEventListener('click', () => {
+      const typed = h33EmailInput.value.trim();
+      const modalEmail = document.getElementById('audit-email') as HTMLInputElement | null;
+      if (typed && modalEmail && !modalEmail.value) {
+        modalEmail.value = typed;
+      }
+      modals.openAudit(h33OpenScopeBtn);
+    });
+
+    h33Form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const honey = h33Form.querySelector<HTMLInputElement>('input[name="_honey"]');
+      if (honey?.value) return;
+
+      const emailVal = h33EmailInput.value.trim();
+      if (!emailVal || !h33EmailInput.validity.valid) {
+        edited = true;
+        setFieldError('Please enter a valid email address to start your project.');
+        h33EmailInput.focus();
+        return;
+      }
+
+      clearFieldError();
+      const modalEmail = document.getElementById('audit-email') as HTMLInputElement | null;
+      if (modalEmail) modalEmail.value = emailVal;
+
+      const labelSpan = h33SubmitBtn.querySelector<HTMLElement>('.h33-submit-label');
+      h33SubmitBtn.disabled = true;
+      if (labelSpan) labelSpan.textContent = 'Sending...';
+
+      fetch(`https://formsubmit.co/ajax/${SITE_CONFIG.brand.email}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          _subject: `DEPLOY Quick-Start Request (${emailVal})`,
+          email: emailVal,
+          source: 'Impact Section — Hero 33 Email Signup',
+          _captcha: 'false',
+        }),
+      })
+        .then(() => {
+          h33InputShell?.classList.add('is-success');
+          h33Feedback.classList.remove('is-error');
+          h33Feedback.classList.add('is-success');
+          h33Feedback.textContent = `✓ Sent to ${SITE_CONFIG.brand.email} — we'll follow up within 24h.`;
+          if (labelSpan) labelSpan.textContent = 'Request sent';
+          window.setTimeout(() => {
+            h33SubmitBtn.disabled = false;
+            if (labelSpan) labelSpan.textContent = 'Start a project';
+          }, 3200);
+        })
+        .catch(() => {
+          h33SubmitBtn.disabled = false;
+          if (labelSpan) labelSpan.textContent = 'Start a project';
+          modals.openAudit(h33SubmitBtn);
+        });
+    });
+  }
 
   // 5b. Lazy-Mount DEPLOY-blue WebGL Venom liquid button effect on pointer devices (skip on touch phones for 0 GPU overhead)
   const isTouchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   if (!isTouchOnly) {
     import('./effects/VenomButtons').then(({ initVenomButtons }) => {
-      initVenomButtons('.btn-yellow-pill, .nav-audit-btn');
+      initVenomButtons('.btn-yellow-pill:not(.h33-submit-btn), .nav-audit-btn');
     });
   }
-
-  // 5c. Scroll-triggered case meter fills inside Results
-  const caseCards = Array.from(document.querySelectorAll<HTMLElement>('.case-card'));
-  const revealIo = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-in-view');
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-  caseCards.forEach((el) => revealIo.observe(el));
 
   // Reduced motion listener
   const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -615,22 +805,30 @@ function bootstrap() {
     return clamp01(-rect.top / scrollable);
   };
 
+  // Phone stages use the actual pinned element height, which stays stable as browser chrome moves.
+  const phoneStageProgress = (section: HTMLElement, stage: HTMLElement, inset = 0) =>
+    clamp01((inset - section.getBoundingClientRect().top) / Math.max(1, section.offsetHeight - stage.offsetHeight));
+  const storyStage = storySection.querySelector<HTMLElement>('.story-sticky')!;
+  const portfolioStage = servicesSection.querySelector<HTMLElement>('.portfolio-sticky-stage')!;
+
   let smoothHeroP = 0;
   let smoothAnimP = 0;
   let smoothStatsVis = 0;
   let smoothStoryP = 0;
   let smoothServP = 0;
-  let smoothResP = 0;
   let smoothProcP = 0;
   let targetHeroP = 0;
   let targetAnimP = 0;
   let targetStatsVis = 0;
   let targetStoryP = 0;
   let targetServP = 0;
-  let targetResP = 0;
   let targetProcP = 0;
   let initializedTargets = false;
   let lastFrameTime = performance.now();
+
+  const impactScroll = initImpactScroll(resultsSection);
+  const mobileScroll = initMobileScroll(processSection, clientsSection, contactSection);
+  motionMq.addEventListener('change', onScroll);
 
   const tickScroll = (now: number) => {
     window.requestAnimationFrame(tickScroll);
@@ -639,13 +837,15 @@ function bootstrap() {
 
     const vh = window.innerHeight || 800;
     const reduced = motionMq.matches;
+    const firstPhoneFrame = !initializedTargets && mobileScroll.phone.matches;
 
     if (targetScrollNeeded || !initializedTargets) {
       targetScrollNeeded = false;
 
-      targetHeroP = reduced ? 0 : getSectionProgress(heroSection);
-
-      const isMobile = window.innerWidth <= 768;
+      const isMobile = mobileScroll.phone.matches;
+      targetHeroP = reduced ? 0 : isMobile && heroStickyEl
+        ? phoneStageProgress(heroSection, heroStickyEl)
+        : getSectionProgress(heroSection);
       if (reduced) {
         targetAnimP = 1;
         targetStatsVis = 1;
@@ -659,11 +859,13 @@ function bootstrap() {
         targetStatsVis = clamp01((wnP - 0.54) / 0.24);
       }
 
-      targetStoryP = getSectionProgress(storySection);
-      targetServP = reduced ? 0 : getSectionProgress(servicesSection);
+      targetStoryP = isMobile ? phoneStageProgress(storySection, storyStage) : getSectionProgress(storySection);
+      targetServP = reduced ? 0 : isMobile
+        ? phoneStageProgress(servicesSection, portfolioStage, header.offsetHeight)
+        : getSectionProgress(servicesSection);
 
-      const resRect = resultsMetricsGrid.getBoundingClientRect();
-      targetResP = clamp01((vh * 0.92 - resRect.top) / (vh * 0.55));
+      impactScroll.measure(vh, reduced);
+      mobileScroll.measure(vh, reduced);
 
       targetProcP = reduced ? 1 : getSectionProgress(processSection);
 
@@ -673,7 +875,6 @@ function bootstrap() {
         smoothStatsVis = targetStatsVis;
         smoothStoryP = targetStoryP;
         smoothServP = targetServP;
-        smoothResP = targetResP;
         smoothProcP = targetProcP;
         initializedTargets = true;
       }
@@ -700,16 +901,18 @@ function bootstrap() {
 
     // Smooth exponential damping factor (snaps instantly when reduced-motion is on)
     const damp = reduced ? 1 : 1 - Math.exp(-dt * 6.2);
+    mobileScroll.update(damp);
+    const impactTurn = impactScroll.update(damp);
+    lightKnotCtrl?.setScrollProgress(impactTurn);
     const diffSum =
       Math.abs(targetHeroP - smoothHeroP) +
       Math.abs(targetAnimP - smoothAnimP) +
       Math.abs(targetStatsVis - smoothStatsVis) +
       Math.abs(targetStoryP - smoothStoryP) +
       Math.abs(targetServP - smoothServP) +
-      Math.abs(targetResP - smoothResP) +
       Math.abs(targetProcP - smoothProcP);
 
-    if (diffSum < 0.00015 && initializedTargets && damp < 1) {
+    if (diffSum < 0.00015 && initializedTargets && damp < 1 && !firstPhoneFrame) {
       return;
     }
 
@@ -718,7 +921,6 @@ function bootstrap() {
     smoothStatsVis += (targetStatsVis - smoothStatsVis) * damp;
     smoothStoryP += (targetStoryP - smoothStoryP) * damp;
     smoothServP += (targetServP - smoothServP) * damp;
-    smoothResP += (targetResP - smoothResP) * damp;
     smoothProcP += (targetProcP - smoothProcP) * damp;
 
     // A. Hero scroll progress + physical depth parallax
@@ -751,10 +953,7 @@ function bootstrap() {
     // D. Services / Portfolio Scroll-Scrubbed FlexCarousel
     servicesCtrl.update(smoothServP);
 
-    // E. Results Speeding Text velocity rollers
-    updateResultsCounters(smoothResP, dt);
-
-    // F. Process 4-Step Curve
+    // E. Process 4-Step Curve
     processCtrl.update(smoothProcP);
   };
 

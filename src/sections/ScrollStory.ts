@@ -141,8 +141,8 @@ export function renderScrollStoryHTML(): string {
               </div>
             </div>
 
-            <!-- 2. Upper Emblem Band (reserves clean sky lane for the 3D D logo & flying arrows) -->
-            <div class="zm-emblem-sky" aria-hidden="true">
+            <!-- Fallback mark for browsers without the 3D model -->
+            <div class="zm-emblem-fallback" aria-hidden="true">
               <div class="zeroth-morph-mark">
                 <picture>
                   <source srcset="./deploy-mark.webp" type="image/webp" />
@@ -490,7 +490,7 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
     }
 
     if (logo3D) {
-      const logoTravelT = invLerp(0.76, 0.99, p);
+      const logoTravelT = invLerp(0.765, 0.975, p);
       logo3D.setProgress(logoTravelT, finaleIn);
     }
 

@@ -143,7 +143,7 @@ export function mountGridSignalCanvas(host: HTMLElement): () => void {
   };
 }
 
-export function initInteractiveSpotlightCards(selector = '.case-card, .result-metric, .wn-stat-col'): void {
+export function initInteractiveSpotlightCards(selector = '.case-card'): void {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
   if (reduced || isTouch) return;

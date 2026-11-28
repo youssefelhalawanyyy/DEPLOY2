@@ -7,26 +7,16 @@ export interface DeployLogo3DController {
   destroy: () => void;
 }
 
-interface AnimatedPart {
-  obj: THREE.Object3D;
-  restPos: THREE.Vector3;
-  restRot: THREE.Euler;
-  role: 'body' | 'arrow' | 'shard';
-  delay: number;
-  speed: number;
-  dir: THREE.Vector3;
-}
-
-// Exact part index groups from `public/blue letter d 3d model.glb`
-const ARROW_1_BIG = new Set([6, 14, 16, 29]); // Hero top-right arrow
-const ARROW_2_MID = new Set([0, 2, 5, 18, 28]); // Long middle diagonal arrow
-const ARROW_3_TOP = new Set([7, 12]); // Upper-left diagonal arrow
-const ARROW_4_BOT = new Set([10, 11, 27]); // Lower-left diagonal arrow
-const SHARD_PARTS = new Set([3, 13, 15, 19, 21, 24, 25, 26]); // Small inner accent blocks
+// Each arrow is split into several meshes in the source model.
+const ARROW_GROUPS = [
+  { indices: new Set([6, 14, 16, 29]), delay: 0, lane: 0 },
+  { indices: new Set([0, 2, 5, 18, 28]), delay: 0.12, lane: 1 },
+  { indices: new Set([7, 12]), delay: 0.23, lane: 2 },
+  { indices: new Set([10, 11, 27]), delay: 0.34, lane: 3 },
+];
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
-const easeInCubic = (t: number) => t * t * t;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export function mountDeployLogo3D(
@@ -53,7 +43,11 @@ export function mountDeployLogo3D(
   renderer.toneMappingExposure = 1.15;
   renderer.domElement.className = 'deploy-logo-3d-canvas';
   renderer.domElement.setAttribute('aria-hidden', 'true');
-  container.appendChild(renderer.domElement);
+  const exhaust = document.createElement('canvas');
+  exhaust.className = 'deploy-logo-3d-canvas deploy-logo-exhaust';
+  exhaust.setAttribute('aria-hidden', 'true');
+  const plume = exhaust.getContext('2d');
+  container.append(exhaust, renderer.domElement);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
@@ -81,7 +75,12 @@ export function mountDeployLogo3D(
   const pivot = new THREE.Group();
   scene.add(pivot);
 
-  const animatedParts: AnimatedPart[] = [];
+  const arrows: Array<{ group: THREE.Group; rest: THREE.Vector3; tail: THREE.Vector3; delay: number; lane: number }> = [];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const flightOffset = new THREE.Vector3();
+  const nozzle = new THREE.Vector3();
+  const forward = new THREE.Vector3();
+  const toLogoSpace = new THREE.Matrix3();
   let modelLoaded = false;
   let scrollT = 0;
   let currentT = 0;
@@ -107,56 +106,44 @@ export function mountDeployLogo3D(
       model.scale.setScalar(normScale);
       model.position.set(-center.x * normScale, -center.y * normScale, -center.z * normScale);
 
-      // Classify each segmented tripo_part_N for the arrow-launch choreography
+      pivot.add(model);
+      const meshes = new Map<number, THREE.Mesh>();
       model.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return;
-        const match = child.name.match(/tripo_part_(\d+)/i);
-        const idx = match ? Number(match[1]) : -1;
-
-        let role: AnimatedPart['role'] = 'body';
-        let delay = 0;
-        let speed = 1;
-        const dir = new THREE.Vector3(1.0, 0.96, 0.22).normalize();
-
-        if (ARROW_1_BIG.has(idx)) {
-          role = 'arrow';
-          delay = 0.0;
-          speed = 1.18;
-          dir.set(1.18, 0.28, 0.22).normalize();
-        } else if (ARROW_2_MID.has(idx)) {
-          role = 'arrow';
-          delay = 0.14;
-          speed = 1.12;
-          dir.set(1.16, 0.22, 0.18).normalize();
-        } else if (ARROW_3_TOP.has(idx)) {
-          role = 'arrow';
-          delay = 0.24;
-          speed = 1.05;
-          dir.set(1.12, 0.34, 0.14).normalize();
-        } else if (ARROW_4_BOT.has(idx)) {
-          role = 'arrow';
-          delay = 0.32;
-          speed = 1.0;
-          dir.set(1.2, 0.18, 0.16).normalize();
-        } else if (SHARD_PARTS.has(idx)) {
-          role = 'shard';
-          delay = 0.18;
-          speed = 0.55;
-          dir.set(1.1, 0.26, 0.28).normalize();
-        }
-
-        animatedParts.push({
-          obj: child,
-          restPos: child.position.clone(),
-          restRot: child.rotation.clone(),
-          role,
-          delay,
-          speed,
-          dir,
-        });
+        const index = child.name.match(/tripo_part_(\d+)/i);
+        if (index && child instanceof THREE.Mesh) meshes.set(Number(index[1]), child);
       });
 
-      pivot.add(model);
+      for (const { indices, delay, lane } of ARROW_GROUPS) {
+        const parts = [...indices].flatMap(index => {
+          const mesh = meshes.get(index);
+          return mesh ? [mesh] : [];
+        });
+        if (!parts.length) continue;
+
+        const bounds = new THREE.Box3();
+        parts.forEach(part => bounds.expandByObject(part));
+        const group = new THREE.Group();
+        group.position.copy(bounds.getCenter(new THREE.Vector3()));
+        pivot.add(group);
+        parts.forEach(part => group.attach(part));
+        // Find the rear of the arrow in its own coordinates so exhaust follows its rotation.
+        const tail = new THREE.Vector3();
+        const vertex = new THREE.Vector3();
+        let rear = Infinity;
+        for (const part of parts) {
+          const positions = part.geometry.getAttribute('position');
+          for (let i = 0; i < positions.count; i++) {
+            vertex.fromBufferAttribute(positions, i).applyMatrix4(part.matrix);
+            const alongArrow = vertex.x + vertex.y;
+            if (alongArrow < rear) {
+              rear = alongArrow;
+              tail.copy(vertex);
+            }
+          }
+        }
+        arrows.push({ group, rest: group.position.clone(), tail, delay, lane });
+      }
+
       modelLoaded = true;
       if (fallbackEl) {
         fallbackEl.style.display = 'none';
@@ -175,6 +162,10 @@ export function mountDeployLogo3D(
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer!.setSize(w, h, false);
+    const resolution = Math.min(window.devicePixelRatio, 2);
+    exhaust.width = Math.round(w * resolution);
+    exhaust.height = Math.round(h * resolution);
+    plume?.setTransform(resolution, 0, 0, resolution, 0, 0);
   };
 
   resize();
@@ -186,76 +177,106 @@ export function mountDeployLogo3D(
     if (!modelLoaded || currentOpacity <= 0.005) return;
 
     const dt = Math.min(clock.getDelta(), 0.05);
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const elapsed = clock.elapsedTime;
+    const reduced = reducedMotion.matches;
+    currentT = THREE.MathUtils.damp(currentT, scrollT, 11, dt);
 
-    currentT += (scrollT - currentT) * (reduced ? 1 : Math.min(1, dt * 6.5));
-
-    const isNarrow = container.clientWidth < 768;
-    const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
-    const halfH = camera.position.z * halfFovTan;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    plume?.clearRect(0, 0, width, height);
+    if (!width || !height) return;
+    const narrow = width < 768;
+    const halfH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
     const halfW = halfH * camera.aspect;
 
-    // Phase 1 (t: 0.00 -> 0.38): Logo starts in the TOP sky band and glides cleanly to upper-left launch berth
-    // (staying 100% above the 3D cylinder text so it never overlaps any words!)
-    const glideT = reduced ? 0 : smooth(clamp01((currentT - 0.02) / 0.36));
-
-    // Phase 2 (t: 0.40 -> 1.00): Logo holds in upper-left sky band and fires arrows across the upper horizon
-    const fireT = reduced ? 0 : clamp01((currentT - 0.40) / 0.60);
-
-    const startX = 0;
-    const startY = isNarrow ? halfH * 0.42 : halfH * 0.44;
-    const upperLeftX = isNarrow ? -halfW * 0.34 : -halfW * 0.48;
-    const upperLeftY = isNarrow ? halfH * 0.40 : halfH * 0.41;
-
-    // Subtle recoil kick on the D launcher when arrows fire
-    const recoil = Math.sin(clamp01(fireT * 2.5) * Math.PI) * 0.1;
-    const floatY = reduced ? 0 : Math.sin(elapsed * 1.5) * 0.025 * (1 - fireT);
+    const glide = reduced ? 1 : smooth(clamp01(currentT / 0.23));
+    const launch = reduced ? 0 : clamp01((currentT - 0.26) / 0.74);
+    const logoWidth = Math.min(width * (narrow ? 0.27 : 0.19), height * 0.245, 250);
+    const landingX = -halfW * (narrow ? 0.63 : 0.73);
+    const landingY = -halfH * (narrow ? 0.47 : 0.45);
+    const ignition = clamp01(launch / 0.16);
+    const recoil = Math.sin(Math.PI * ignition) ** 2 * 0.10;
 
     pivot.position.set(
-      lerp(startX, upperLeftX, glideT) - recoil,
-      lerp(startY, upperLeftY, glideT) - recoil * 0.35 + floatY,
+      lerp(-halfW * (narrow ? 0.68 : 0.77), landingX, glide) - recoil,
+      lerp(halfH * (narrow ? -0.22 : 0.08), landingY, glide) - recoil,
       0
     );
+    pivot.rotation.set(lerp(0.12, -0.04, glide), lerp(-0.28, 0.13, glide), lerp(0.16, -0.05, glide));
+    pivot.scale.setScalar((logoWidth / width) * (2 * halfW / 1.75) * lerp(0.82, 1, glide));
+    pivot.updateMatrixWorld(true);
+    toLogoSpace.setFromMatrix4(pivot.matrixWorld).invert();
 
-    // Smooth 3D framing rotation: faces forward cleanly, tilts slightly toward right horizon for launch
-    if (reduced) {
-      pivot.rotation.set(0.04, 0.12, 0);
-    } else {
-      pivot.rotation.y = lerp(-0.26, 0.22, glideT) + Math.sin(elapsed * 0.7) * 0.035;
-      pivot.rotation.x = lerp(0.05, -0.04, glideT);
-      pivot.rotation.z = lerp(0, -0.08, glideT);
-    }
+    for (const { group, rest, tail, delay, lane } of arrows) {
+      const t = clamp01((launch - delay) / (1 - delay));
+      // Build thrust early, then keep accelerating toward the corner.
+      const distance = t * t * (0.72 + 0.28 * t);
+      const dx = halfW * (0.82 - lane * 0.083) - landingX;
+      const dy = halfH * (0.56 - lane * 0.058) - landingY;
+      const lift = halfH * 0.88;
 
-    const entryScale = 0.78 + 0.22 * smooth(clamp01(currentT * 4.5));
-    const emblemScale = isNarrow ? 0.48 : 0.56;
-    pivot.scale.setScalar(entryScale * emblemScale);
+      flightOffset.set(dx * distance, (dy + lift * (1 - distance)) * distance, 0);
+      flightOffset.applyMatrix3(toLogoSpace);
+      group.position.copy(rest).add(flightOffset);
+      const heading = Math.atan2(dy + lift * (1 - 2 * distance), dx);
+      group.rotation.z = (heading - Math.PI / 4 - pivot.rotation.z) * smooth(clamp01(t * 9));
 
-    // Animate individual segmented parts (arrows shoot diagonally up-right across the screen!)
-    const throwDist = isNarrow ? 4.2 : 5.6;
-    for (const part of animatedParts) {
-      if (part.role === 'body') {
-        part.obj.position.copy(part.restPos);
-        part.obj.rotation.copy(part.restRot);
-        continue;
+      if (!plume || t <= 0 || t >= 0.999) continue;
+      group.updateWorldMatrix(false, false);
+      nozzle.copy(tail).applyMatrix4(group.matrixWorld).project(camera);
+      forward.copy(tail);
+      forward.x += 0.1;
+      forward.y += 0.1;
+      forward.applyMatrix4(group.matrixWorld).project(camera);
+
+      const thrust = smooth(clamp01(t * 24)) * (1 - smooth(clamp01((t - 0.80) / 0.20)));
+      const scale = logoWidth * (lane === 0 ? 1 : 0.64);
+      const ripple = Math.sin(t * 125 + lane * 2);
+      const length = scale * (0.24 + 0.30 * thrust + ripple * 0.035);
+      const spread = scale * (0.035 + thrust * 0.027);
+      const curl = Math.sin(t * 91 + lane) * spread * 0.55;
+      const angle = Math.atan2((nozzle.y - forward.y) * height, (forward.x - nozzle.x) * width);
+
+      plume.save();
+      plume.translate((nozzle.x + 1) * width / 2, (1 - nozzle.y) * height / 2);
+      plume.rotate(angle);
+      plume.globalAlpha = thrust;
+
+      const fire = plume.createLinearGradient(0, 0, -length, 0);
+      fire.addColorStop(0, '#fff5be');
+      fire.addColorStop(0.18, '#ffbf37');
+      fire.addColorStop(0.50, '#fa650e');
+      fire.addColorStop(1, 'rgba(230, 51, 7, 0)');
+      plume.fillStyle = fire;
+      plume.shadowColor = '#ff7b16';
+      plume.shadowBlur = spread * 0.9;
+      plume.beginPath();
+      plume.moveTo(spread * 0.55, -spread * 0.36);
+      plume.bezierCurveTo(-length * 0.19, -spread, -length * 0.50, -spread * 0.4, -length, curl);
+      plume.bezierCurveTo(-length * 0.60, spread * 0.1, -length * 0.25, spread, spread * 0.55, spread * 0.36);
+      plume.closePath();
+      plume.fill();
+
+      const core = plume.createLinearGradient(0, 0, -length * 0.58, 0);
+      core.addColorStop(0, '#fffdf3');
+      core.addColorStop(0.45, '#ffe18a');
+      core.addColorStop(1, 'rgba(255, 177, 45, 0)');
+      plume.shadowBlur = 0;
+      plume.fillStyle = core;
+      plume.beginPath();
+      plume.moveTo(spread * 0.4, -spread * 0.20);
+      plume.quadraticCurveTo(-length * 0.22, -spread * 0.40, -length * 0.58, curl * 0.3);
+      plume.quadraticCurveTo(-length * 0.24, spread * 0.40, spread * 0.4, spread * 0.20);
+      plume.fill();
+
+      plume.fillStyle = '#ec6414';
+      for (let i = 0; i < 5; i++) {
+        const age = (t * (5 + i * 0.32) + i * 0.21) % 1;
+        plume.globalAlpha = thrust * (1 - age) * 0.68;
+        plume.beginPath();
+        plume.ellipse(-length * (0.42 + age * 0.88), spread * Math.sin(i * 2.4 + lane) * (0.4 + age), 1 + spread * 0.24, 0.7 + spread * 0.07, 0, 0, Math.PI * 2);
+        plume.fill();
       }
-
-      const localT = clamp01((fireT - part.delay) / Math.max(0.15, 1 - part.delay));
-      const travel = easeInCubic(localT) * throwDist * part.speed;
-
-      part.obj.position.set(
-        part.restPos.x + part.dir.x * travel,
-        part.restPos.y + part.dir.y * travel,
-        part.restPos.z + part.dir.z * travel
-      );
-
-      // Slight aerodynamic spin/tilt as each arrow launches
-      const spin = localT * localT * (part.role === 'shard' ? 1.4 : 0.45);
-      part.obj.rotation.set(
-        part.restRot.x + spin * 0.35,
-        part.restRot.y + spin * 0.55,
-        part.restRot.z - localT * 0.12
-      );
+      plume.restore();
     }
 
     renderer!.render(scene, camera);
@@ -267,7 +288,7 @@ export function mountDeployLogo3D(
     setProgress(t: number, visibleOpacity: number) {
       scrollT = clamp01(t);
       currentOpacity = clamp01(visibleOpacity);
-      renderer!.domElement.style.opacity = currentOpacity.toFixed(3);
+      container.style.opacity = currentOpacity.toFixed(3);
     },
     destroy() {
       window.cancelAnimationFrame(rafId);
@@ -276,6 +297,7 @@ export function mountDeployLogo3D(
       envTex.dispose();
       renderer?.dispose();
       renderer?.domElement.remove();
+      exhaust.remove();
     },
   };
 }

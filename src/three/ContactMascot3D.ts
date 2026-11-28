@@ -60,6 +60,10 @@ export function mountContactMascot3D(
   camera.position.set(0, 0.86, 4.15);
 
   const controls = new OrbitControls(camera, renderer.domElement);
+  if (isTouch) {
+    // OrbitControls sets an inline touch-action of none. Give vertical swipes back to the page.
+    renderer.domElement.style.touchAction = 'pan-y';
+  }
   controls.enableZoom = false;
   controls.enablePan = false;
   controls.enableDamping = true;
@@ -143,6 +147,7 @@ export function mountContactMascot3D(
   // Scroll velocity gently energizes the jump & turn cadence as user scrolls into Contact
   let scrollVelocity = 0;
   let dampedVelocity = 0;
+  let touchProgress = 0;
 
   const st = ScrollTrigger.create({
     trigger: sectionEl,
@@ -150,6 +155,7 @@ export function mountContactMascot3D(
     end: 'bottom top',
     scrub: true,
     onUpdate: (self) => {
+      if (isTouch) touchProgress = self.progress;
       scrollVelocity = THREE.MathUtils.clamp(Math.abs(self.getVelocity()) / 1000, 0, 1.5);
     },
   });
@@ -250,7 +256,8 @@ export function mountContactMascot3D(
     }
 
     mascotPivot.position.set(0, BASE_Y_OFFSET + jumpY, 0);
-    mascotPivot.rotation.set(0, currentYaw + spinBonus, airTiltZ);
+    const scrollTurn = isTouch ? (touchProgress - 0.5) * 1.15 : 0;
+    mascotPivot.rotation.set(0, currentYaw + spinBonus + scrollTurn, airTiltZ);
 
     // Ground halo scales & softens smoothly as mascot jumps up and sharpens on landing
     const shadowScale = THREE.MathUtils.clamp(1 - jumpY * 0.85, 0.58, 1);

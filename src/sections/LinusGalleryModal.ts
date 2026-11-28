@@ -56,7 +56,7 @@ export function renderLinusGalleryModalHTML(): string {
         <div id="lr-dialog-content"></div>
 
         <!-- Inline High-Resolution Print Zoom Overlay inside Top Layer -->
-        <div class="h51-zoom-overlay" id="h51-zoom-overlay" hidden>
+        <dialog class="h51-zoom-overlay" id="h51-zoom-overlay" aria-labelledby="h51-zoom-kicker">
           <div class="h51-zoom-backdrop" data-zoom-close></div>
           <div class="h51-zoom-card">
             <div class="h51-zoom-bar">
@@ -72,7 +72,7 @@ export function renderLinusGalleryModalHTML(): string {
             </div>
             <img id="h51-zoom-img" class="h51-zoom-img" src="" alt="" />
           </div>
-        </div>
+        </dialog>
       </div>
     </dialog>
   `;
@@ -314,17 +314,11 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
                   style="z-index: ${sIdx + 1};"
                 >
                   <article class="h51-stack-card">
-                    <header class="h51-stack-bar">
-                      <div class="h51-stack-bar-left">
-                        <span class="h51-stack-plate-pill">PLATE ${pad2(sIdx + 1)}</span>
-                        <h3 class="h51-stack-title">${scr.label}</h3>
-                      </div>
-                      <div class="h51-stack-bar-right">
-                        <span class="h51-stack-tag">${scr.tag}</span>
-                        <span class="h51-stack-fraction">${pad2(sIdx + 1)} / ${pad2(project.screens.length)}</span>
-                      </div>
-                    </header>
-
+                    <div class="plate-notes">
+                      <span class="h51-stack-tag">${scr.tag}</span>
+                      <h3>${scr.label}</h3>
+                      <p>${scr.caption}</p>
+                    </div>
                     <button
                       type="button"
                       class="h51-stack-media"
@@ -341,11 +335,6 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
                       <span class="h51-plate-zoom-chip">Click to zoom &#8599;</span>
                     </button>
 
-                    <footer class="h51-stack-foot">
-                      <p>${scr.caption}</p>
-                    </footer>
-
-                    <span class="h51-stack-card__shade" aria-hidden="true"></span>
                   </article>
                 </div>
               `
@@ -381,7 +370,7 @@ export function initLinusGalleryModal(
 ): LinusGalleryController {
   const dialog = document.getElementById('lr-project-dialog') as HTMLDialogElement | null;
   const contentHost = document.getElementById('lr-dialog-content');
-  const zoomOverlay = document.getElementById('h51-zoom-overlay');
+  const zoomOverlay = document.querySelector<HTMLDialogElement>('#h51-zoom-overlay');
   const zoomImg = document.getElementById('h51-zoom-img') as HTMLImageElement | null;
   const zoomKicker = document.getElementById('h51-zoom-kicker');
   const zoomCaption = document.getElementById('h51-zoom-caption');
@@ -414,11 +403,11 @@ export function initLinusGalleryModal(
     zoomImg.alt = `${project.tabTitle} — ${scr.label}`;
     zoomKicker.textContent = `${project.tabTitle} · PLATE ${pad2(norm + 1)} / ${pad2(total)} — ${scr.label}`;
     zoomCaption.textContent = scr.caption;
-    zoomOverlay.hidden = false;
+    if (!zoomOverlay.open) zoomOverlay.showModal();
   };
 
   const closeZoom = () => {
-    if (zoomOverlay) zoomOverlay.hidden = true;
+    if (zoomOverlay?.open) zoomOverlay.close();
   };
 
   zoomPrev?.addEventListener('click', () => openZoom(currentZoomIdx - 1));
@@ -532,7 +521,6 @@ export function initLinusGalleryModal(
     if (!slots.length) return;
 
     const cards = slots.map((s) => s.querySelector<HTMLElement>('.h51-stack-card'));
-    const shades = slots.map((s) => s.querySelector<HTMLElement>('.h51-stack-card__shade'));
     const cache = new Map<string, string>();
     const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
     let rafId = 0;
@@ -544,8 +532,9 @@ export function initLinusGalleryModal(
       apply(val);
     };
 
-    const clamp = (min: number, v: number, max: number) => Math.max(min, Math.min(max, v));
     const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+    const ease = (t: number) => t * t * (3 - 2 * t);
 
     const updateStack = () => {
       rafId = 0;
@@ -563,11 +552,8 @@ export function initLinusGalleryModal(
         }
         cards.forEach((card, i) => {
           if (!card) return;
-          write(`tf-${i}`, '', (v) => { card.style.transform = v; });
-          write(`op-${i}`, '1', (v) => { card.style.opacity = v; });
-          write(`pe-${i}`, '', (v) => { card.style.pointerEvents = v; });
-          const shade = shades[i];
-          if (shade) write(`dm-${i}`, '0', (v) => { shade.style.opacity = v; });
+          write(`fade-${i}`, '1', value => card.style.setProperty('--plate-opacity', value));
+          write(`move-${i}`, '0px', value => card.style.setProperty('--plate-offset', value));
         });
         return;
       }
@@ -617,116 +603,40 @@ export function initLinusGalleryModal(
 
       const viewHeight = dialog.clientHeight || window.innerHeight;
       const viewTop = dialog.getBoundingClientRect().top + dialog.clientTop;
-      const isMobile = window.innerWidth <= 720;
-      const stackTop = Math.round(clamp(isMobile ? 86 : 108, viewHeight * 0.135, 138));
-      write('stackTop', `${stackTop}px`, (v) => {
-        stackRoot.style.setProperty('--stack-top', v);
-      });
-
-      const pinY = viewTop + stackTop;
-      const heights = slots.map((slot) => slot.offsetHeight);
-      const tops = slots.map((slot) => slot.getBoundingClientRect().top);
-
-      // Accumulate exact stack depth as each subsequent card slides up over the pinned deck
-      const depths = slots.map(() => 0);
-      let frontIdx = 0;
-      for (let j = 1; j < slots.length; j++) {
-        const prevH = heights[j - 1];
-        const span = Math.max(1, prevH * 0.9);
-        const start = pinY + prevH * 0.95;
-        const cover = clamp01((start - tops[j]) / span);
-        if (cover > 0.45) frontIdx = j;
-        for (let i = 0; i < j; i++) {
-          depths[i] += cover;
+      const visibleTop = topbarEl ? topbarEl.getBoundingClientRect().bottom - viewTop : 0;
+      const usableHeight = viewHeight - visibleTop;
+      const focusLine = visibleTop + usableHeight * 0.5;
+      const bounds = slots.map(slot => slot.getBoundingClientRect());
+      let active = 0;
+      let closest = Infinity;
+      bounds.forEach((rect, i) => {
+        const top = rect.top - viewTop;
+        const bottom = rect.bottom - viewTop;
+        const distance = Math.abs((top + bottom) / 2 - focusLine);
+        if (distance < closest) {
+          active = i;
+          closest = distance;
         }
-      }
 
-      if (frontIdx !== lastActivePlate) {
-        const dir: 1 | -1 = frontIdx > lastActivePlate ? 1 : -1;
-        lastActivePlate = frontIdx;
-        morphSpeedingText(activeNumEl, pad2(frontIdx + 1), { axis: 'y', direction: dir, durationMs: 300 });
-      }
-
-      const peekStep = isMobile ? 14 : 22;
-      const itemScale = 0.046;
-      const baseScale = 0.8;
-      const dimStep = 0.16;
-
-      slots.forEach((_, i) => {
         const card = cards[i];
-        const shade = shades[i];
         if (!card) return;
-
-        const depth = depths[i];
-        if (depth < 0.001) {
-          write(`tf-${i}`, '', (v) => { card.style.transform = v; });
-          write(`op-${i}`, '1', (v) => { card.style.opacity = v; });
-          write(`pe-${i}`, '', (v) => { card.style.pointerEvents = v; });
-          if (shade) write(`dm-${i}`, '0', (v) => { shade.style.opacity = v; });
-          return;
-        }
-
-        const clampedPeekDepth = Math.min(depth, 3.6);
-        const peekY = -clampedPeekDepth * peekStep;
-        const scale = Math.max(baseScale, 1 - depth * itemScale);
-        const tilt = -Math.min(depth, 1.35) * 2.1;
-        const dim = 1 - Math.pow(1 - dimStep, depth);
-
-        // Smoothly fade buried cards away once 2+ newer cards stack over them
-        const fadeProgress = clamp01((depth - 2.15) / 1.45);
-        const smoothFade = 1 - fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-
-        const tf = `perspective(1200px) translate3d(0, ${peekY.toFixed(1)}px, 0) rotateX(${tilt.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
-        const op = smoothFade.toFixed(3);
-        const pe = smoothFade < 0.05 ? 'none' : '';
-
-        write(`tf-${i}`, tf, (v) => { card.style.transform = v; });
-        write(`op-${i}`, op, (v) => { card.style.opacity = v; });
-        write(`pe-${i}`, pe, (v) => { card.style.pointerEvents = v; });
-        if (shade) write(`dm-${i}`, dim.toFixed(3), (v) => { shade.style.opacity = v; });
+        const fadeDistance = Math.max(1, Math.min(usableHeight * 0.32, rect.height * 0.62));
+        const entering = ease(clamp01((viewHeight - top) / fadeDistance));
+        const leaving = ease(clamp01((bottom - visibleTop) / fadeDistance));
+        const offset = (leaving - entering) * 32;
+        write(`fade-${i}`, (entering * leaving).toFixed(3), value => card.style.setProperty('--plate-opacity', value));
+        write(`move-${i}`, `${offset.toFixed(1)}px`, value => card.style.setProperty('--plate-offset', value));
       });
+      if (active !== lastActivePlate) {
+        const direction = active > lastActivePlate ? 1 : -1;
+        lastActivePlate = active;
+        morphSpeedingText(activeNumEl, pad2(active + 1), { axis: 'y', direction, durationMs: 300 });
+      }
     };
 
     const schedule = () => {
       if (!rafId) rafId = window.requestAnimationFrame(updateStack);
     };
-
-    const depthsAtFocus = (targetIdx: number): number => {
-      const viewHeight = dialog.clientHeight || window.innerHeight;
-      const viewTop = dialog.getBoundingClientRect().top + dialog.clientTop;
-      const stackTop = Math.round(clamp(window.innerWidth <= 720 ? 86 : 108, viewHeight * 0.135, 138));
-      const pinY = viewTop + stackTop;
-      let d = 0;
-      for (let j = targetIdx + 1; j < slots.length; j++) {
-        const prevH = slots[j - 1].offsetHeight;
-        const cover = clamp01((pinY + prevH * 0.95 - slots[j].getBoundingClientRect().top) / Math.max(1, prevH * 0.9));
-        d += cover;
-      }
-      return d;
-    };
-
-    // Keyboard accessibility: if a user tabs into an earlier buried slot, scroll it cleanly to depth 0
-    const focusHandlers: Array<() => void> = [];
-    slots.forEach((slot, idx) => {
-      const onFocusIn = () => {
-        if (motionMq.matches || depthsAtFocus(idx) < 0.5) return;
-        const innerTopInDialog =
-          stackInner.getBoundingClientRect().top -
-          (dialog.getBoundingClientRect().top + dialog.clientTop) +
-          dialog.scrollTop;
-        let offsetBefore = 0;
-        for (let k = 0; k < idx; k++) {
-          const spacerEl = slots[k].nextElementSibling as HTMLElement | null;
-          const spacerH = spacerEl?.classList.contains('h51-stack-spacer') ? spacerEl.offsetHeight : 0;
-          offsetBefore += slots[k].offsetHeight + spacerH;
-        }
-        const viewHeight = dialog.clientHeight || window.innerHeight;
-        const stackTop = Math.round(clamp(window.innerWidth <= 720 ? 86 : 108, viewHeight * 0.135, 138));
-        dialog.scrollTo({ top: Math.max(0, innerTopInDialog + offsetBefore - stackTop), behavior: 'smooth' });
-      };
-      slot.addEventListener('focusin', onFocusIn);
-      focusHandlers.push(() => slot.removeEventListener('focusin', onFocusIn));
-    });
 
     const ro = new ResizeObserver(schedule);
     ro.observe(dialog);
@@ -742,7 +652,6 @@ export function initLinusGalleryModal(
       dialog.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
       motionMq.removeEventListener('change', schedule);
-      focusHandlers.forEach((fn) => fn());
     };
   };
 
@@ -812,7 +721,7 @@ export function initLinusGalleryModal(
 
   dialog.addEventListener('cancel', (e) => {
     e.preventDefault();
-    if (zoomOverlay && !zoomOverlay.hidden) {
+    if (zoomOverlay?.open) {
       closeZoom();
       return;
     }
@@ -820,7 +729,7 @@ export function initLinusGalleryModal(
   });
 
   dialog.addEventListener('keydown', (e) => {
-    if (zoomOverlay && !zoomOverlay.hidden) {
+    if (zoomOverlay?.open) {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         openZoom(currentZoomIdx - 1);
