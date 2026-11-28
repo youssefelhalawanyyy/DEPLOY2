@@ -586,10 +586,12 @@ function bootstrap() {
     sphereCtrl.setReducedMotion(e.matches);
   });
 
-  // 6. Unified Scroll Progress Engine (single rAF tick, forward & reverse safe)
-  let scrollDirty = true;
+  // 6. Unified Smooth-Scrubbed Scroll Progress Engine
+  // Uses frame-rate-independent exponential damping so mouse-wheel ticks & fast flicks
+  // glide with weighted cinematic smoothness without hijacking native browser scrolling.
+  let targetScrollNeeded = true;
   const onScroll = () => {
-    scrollDirty = true;
+    targetScrollNeeded = true;
   };
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
@@ -600,80 +602,134 @@ function bootstrap() {
     return clamp01(-rect.top / scrollable);
   };
 
-  const tickScroll = () => {
+  let smoothHeroP = 0;
+  let smoothAnimP = 0;
+  let smoothStatsVis = 0;
+  let smoothStoryP = 0;
+  let smoothResP = 0;
+  let smoothProcP = 0;
+  let targetHeroP = 0;
+  let targetAnimP = 0;
+  let targetStatsVis = 0;
+  let targetStoryP = 0;
+  let targetResP = 0;
+  let targetProcP = 0;
+  let initializedTargets = false;
+  let lastFrameTime = performance.now();
+
+  const tickScroll = (now: number) => {
     window.requestAnimationFrame(tickScroll);
-    if (!scrollDirty) return;
-    scrollDirty = false;
+    const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+    lastFrameTime = now;
 
     const vh = window.innerHeight || 800;
     const reduced = motionMq.matches;
 
-    // A. Hero scroll progress (0..1)
-    const heroP = reduced ? 0 : getSectionProgress(heroSection);
-    sphereCtrl.setScrollProgress(heroP);
-    const uiFade = clamp01(1 - heroP * 3.2);
-    heroBottomBar.style.opacity = uiFade.toFixed(3);
-    heroReadingCaption.style.opacity = (isOverDeploy ? uiFade : 0).toFixed(3);
-    heroDisplayTitle.style.opacity = clamp01(1 - Math.max(0, heroP - 0.32) * 2.8).toFixed(3);
+    if (targetScrollNeeded || !initializedTargets) {
+      targetScrollNeeded = false;
 
-    // B. Why Now word-by-word illumination (waits until pinned in the middle on desktop; viewport-based on mobile)
-    const isMobile = window.innerWidth <= 768;
-    let animP = 1;
-    let statsVis = 1;
-    if (!reduced) {
-      if (isMobile) {
+      targetHeroP = reduced ? 0 : getSectionProgress(heroSection);
+
+      const isMobile = window.innerWidth <= 768;
+      if (reduced) {
+        targetAnimP = 1;
+        targetStatsVis = 1;
+      } else if (isMobile) {
         const wnRect = whyNowSection.getBoundingClientRect();
-        animP = clamp01((vh * 0.85 - wnRect.top) / (vh * 0.65));
-        statsVis = clamp01((vh * 0.9 - wnRect.top) / (vh * 0.45));
+        targetAnimP = clamp01((vh * 0.85 - wnRect.top) / (vh * 0.78));
+        targetStatsVis = clamp01((vh * 0.9 - wnRect.top) / (vh * 0.55));
       } else {
         const wnP = getSectionProgress(whyNowSection);
-        animP = clamp01((wnP - 0.04) / 0.68);
-        statsVis = clamp01((wnP - 0.70) / 0.18);
+        targetAnimP = clamp01((wnP - 0.05) / 0.68);
+        targetStatsVis = clamp01((wnP - 0.70) / 0.20);
       }
+
+      targetStoryP = getSectionProgress(storySection);
+
+      const resRect = resultsMetricsGrid.getBoundingClientRect();
+      targetResP = clamp01((vh * 0.92 - resRect.top) / (vh * 0.55));
+
+      targetProcP = reduced ? 1 : getSectionProgress(processSection);
+
+      if (!initializedTargets) {
+        smoothHeroP = targetHeroP;
+        smoothAnimP = targetAnimP;
+        smoothStatsVis = targetStatsVis;
+        smoothStoryP = targetStoryP;
+        smoothResP = targetResP;
+        smoothProcP = targetProcP;
+        initializedTargets = true;
+      }
+
+      // Adaptive Header Theme responds crisply to live section bounds
+      const headerMid = 34;
+      const storyLight = targetStoryP > 0.86 && storySection.getBoundingClientRect().bottom > headerMid;
+      const inServices =
+        servicesSection.getBoundingClientRect().top <= headerMid &&
+        servicesSection.getBoundingClientRect().bottom > headerMid;
+      const inProcess =
+        processSection.getBoundingClientRect().top <= headerMid &&
+        processSection.getBoundingClientRect().bottom > headerMid;
+      const inClients =
+        clientsSection.getBoundingClientRect().top <= headerMid &&
+        clientsSection.getBoundingClientRect().bottom > headerMid;
+      const inContact = contactSection.getBoundingClientRect().top <= headerMid;
+
+      const isLightHeader = !inContact && (storyLight || inServices || inProcess || inClients);
+      header.dataset.theme = isLightHeader ? 'light' : 'dark';
     }
-    const litCount = Math.floor(animP * (whyNowWords.length + 1));
+
+    // Smooth exponential damping factor (snaps instantly when reduced-motion is on)
+    const damp = reduced ? 1 : 1 - Math.exp(-dt * 6.2);
+    const diffSum =
+      Math.abs(targetHeroP - smoothHeroP) +
+      Math.abs(targetAnimP - smoothAnimP) +
+      Math.abs(targetStatsVis - smoothStatsVis) +
+      Math.abs(targetStoryP - smoothStoryP) +
+      Math.abs(targetResP - smoothResP) +
+      Math.abs(targetProcP - smoothProcP);
+
+    if (diffSum < 0.00015 && initializedTargets && damp < 1) {
+      return;
+    }
+
+    smoothHeroP += (targetHeroP - smoothHeroP) * damp;
+    smoothAnimP += (targetAnimP - smoothAnimP) * damp;
+    smoothStatsVis += (targetStatsVis - smoothStatsVis) * damp;
+    smoothStoryP += (targetStoryP - smoothStoryP) * damp;
+    smoothResP += (targetResP - smoothResP) * damp;
+    smoothProcP += (targetProcP - smoothProcP) * damp;
+
+    // A. Hero scroll progress
+    sphereCtrl.setScrollProgress(smoothHeroP);
+    const uiFade = clamp01(1 - smoothHeroP * 2.8);
+    heroBottomBar.style.opacity = uiFade.toFixed(3);
+    heroReadingCaption.style.opacity = (isOverDeploy ? uiFade : 0).toFixed(3);
+    heroDisplayTitle.style.opacity = clamp01(1 - Math.max(0, smoothHeroP - 0.34) * 2.5).toFixed(3);
+
+    // B. Why DEPLOY word-by-word illumination + rolling odometer stats
+    const litCount = Math.floor(smoothAnimP * (whyNowWords.length + 1));
     whyNowWords.forEach((w, idx) => {
       w.classList.toggle('is-lit', idx < litCount);
     });
-    whyNowStats.style.opacity = statsVis.toFixed(3);
-    whyNowStats.style.transform = `translate3d(0, ${((1 - statsVis) * 20).toFixed(1)}px, 0)`;
-    updateOdometerContainer(whyNowStats, statsVis, reduced);
+    whyNowStats.style.opacity = smoothStatsVis.toFixed(3);
+    whyNowStats.style.transform = `translate3d(0, ${((1 - smoothStatsVis) * 20).toFixed(1)}px, 0)`;
+    updateOdometerContainer(whyNowStats, smoothStatsVis, reduced);
 
     // C. 9-Beat Scroll Story
-    const storyP = getSectionProgress(storySection);
-    storyCtrl.update(storyP);
+    storyCtrl.update(smoothStoryP);
 
-    // D. Services Stack live diagrams
+    // D. Services / Portfolio Stack
     servicesCtrl.update();
 
-    // E. Results vertical odometer rollers (scrubbed smoothly across viewport entry)
-    const resRect = resultsMetricsGrid.getBoundingClientRect();
-    const resP = clamp01((vh * 0.92 - resRect.top) / (vh * 0.42));
-    updateResultsCounters(resP);
+    // E. Results vertical odometer rollers
+    updateResultsCounters(smoothResP);
 
     // F. Process 4-Step Curve
-    const procP = reduced ? 1 : getSectionProgress(processSection);
-    processCtrl.update(procP);
-
-    // G. Adaptive Header Theme (dark vs light sections)
-    const headerMid = 34;
-    const storyLight = storyP > 0.86 && storySection.getBoundingClientRect().bottom > headerMid;
-    const inServices =
-      servicesSection.getBoundingClientRect().top <= headerMid &&
-      servicesSection.getBoundingClientRect().bottom > headerMid;
-    const inProcess =
-      processSection.getBoundingClientRect().top <= headerMid &&
-      processSection.getBoundingClientRect().bottom > headerMid;
-    const inClients =
-      clientsSection.getBoundingClientRect().top <= headerMid &&
-      clientsSection.getBoundingClientRect().bottom > headerMid;
-    const inContact = contactSection.getBoundingClientRect().top <= headerMid;
-
-    const isLightHeader = !inContact && (storyLight || inServices || inProcess || inClients);
-    header.dataset.theme = isLightHeader ? 'light' : 'dark';
+    processCtrl.update(smoothProcP);
   };
 
-  tickScroll();
+  window.requestAnimationFrame(tickScroll);
 }
 
 bootstrap();

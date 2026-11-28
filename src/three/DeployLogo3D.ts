@@ -189,7 +189,7 @@ export function mountDeployLogo3D(
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const elapsed = clock.elapsedTime;
 
-    currentT += (scrollT - currentT) * (reduced ? 1 : Math.min(1, dt * 11));
+    currentT += (scrollT - currentT) * (reduced ? 1 : Math.min(1, dt * 6.5));
 
     const isNarrow = container.clientWidth < 768;
     const halfFovTan = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));

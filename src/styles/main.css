@@ -388,7 +388,7 @@ button {
 .hero-section {
   position: relative;
   z-index: 1;
-  height: 185vh;
+  height: 235vh;
   background: var(--bg-black);
 }
 
@@ -593,8 +593,8 @@ button {
   position: relative;
   z-index: 3;
   margin-top: -38vh;
-  height: 245vh;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000000 16%, #000000 100%);
+  height: 315vh;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000000 14%, #000000 100%);
 }
 
 .why-now-sticky {
@@ -673,7 +673,7 @@ button {
    ============================================================ */
 .story-section {
   position: relative;
-  height: 920vh;
+  height: 1180vh;
   background: var(--bg-black);
 }
 
@@ -2026,7 +2026,7 @@ button {
    ============================================================ */
 .process-section {
   position: relative;
-  height: 310vh;
+  height: 385vh;
   background: var(--bg-offwhite);
   color: var(--ink-dark);
 }
@@ -2969,7 +2969,7 @@ button {
   }
 
   .hero-section {
-    height: 145vh;
+    height: 175vh;
   }
 
   .hero-sticky {
@@ -3088,7 +3088,7 @@ button {
 
   /* 9-Beat Scroll Story redesigned for crisp portrait phone viewing (zero overlap) */
   .story-section {
-    height: 520vh;
+    height: 680vh;
   }
 
   .story-search-bar {
