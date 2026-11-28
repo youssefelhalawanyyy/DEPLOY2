@@ -268,29 +268,30 @@ export function initScrollStory(section: HTMLElement): ScrollStoryController {
 
     beatEls.forEach((el, idx) => {
       const [start, end] = beatRanges[idx];
-      const fadeIn = smooth(invLerp(start - 0.015, start + 0.025, p));
+      const fadeIn = idx === 0 ? 1 : smooth(invLerp(start - 0.015, start + 0.025, p));
       const fadeOut = 1 - smooth(invLerp(end - 0.025, end + 0.01, p));
-      const opacity = idx === 0 && p < 0.02 ? smooth(invLerp(0.0, 0.03, p)) : Math.min(fadeIn, fadeOut);
+      const opacity = Math.min(fadeIn, fadeOut);
       el.style.opacity = opacity.toFixed(3);
       el.style.transform = `translate3d(0, ${((1 - fadeIn) * 14).toFixed(1)}px, 0)`;
       el.setAttribute('aria-hidden', opacity < 0.1 ? 'true' : 'false');
     });
 
-    // Spotlight intro
-    const spotOpacity = smooth(invLerp(0.0, 0.02, p)) * (1 - smooth(invLerp(0.025, 0.045, p)));
+    // Spotlight intro: already visible at p = 0 so there is zero empty black space entering Story
+    const spotOpacity = (1 - smooth(invLerp(0.05, 0.11, p))) * 0.85;
     spotlight.style.opacity = spotOpacity.toFixed(3);
 
-    // Search bar visibility: Beat 01 (0.02..0.14) and Beats 06-08 (0.58..0.88)
-    const sb1 = smooth(invLerp(0.025, 0.05, p)) * (1 - smooth(invLerp(0.12, 0.145, p)));
+    // Search bar visibility: immediately visible in Beat 01 (0.00..0.145) and returns in Beats 06-08 (0.57..0.90)
+    const sb1 = 1 - smooth(invLerp(0.12, 0.145, p));
     const sb2 = smooth(invLerp(0.57, 0.62, p)) * (1 - smooth(invLerp(0.86, 0.90, p)));
     const sbOpacity = Math.max(sb1, sb2);
-    const sbY = sb2 > sb1 ? -225 : lerp(0, -18, invLerp(0.05, 0.13, p));
+    const sbY = sb2 > sb1 ? -225 : lerp(-34, -18, invLerp(0.0, 0.12, p));
     searchBar.style.opacity = sbOpacity.toFixed(3);
-    searchBar.style.transform = `translate3d(-50%, ${sbY.toFixed(1)}px, 0) scale(${lerp(0.94, 1, sbOpacity).toFixed(3)})`;
+    searchBar.style.transform = `translate3d(-50%, ${sbY.toFixed(1)}px, 0) scale(${lerp(0.96, 1, sbOpacity).toFixed(3)})`;
 
-    // Typewriter query text during Beat 01
+    // Typewriter query text during Beat 01 (starts with prompt visible at p = 0)
     if (p < 0.16) {
-      const charCount = Math.floor(invLerp(0.04, 0.105, p) * query.length);
+      const minChars = 6;
+      const charCount = Math.max(minChars, Math.floor(lerp(minChars, query.length, invLerp(0.005, 0.095, p))));
       searchText.textContent = query.slice(0, charCount);
     } else {
       searchText.textContent = '';

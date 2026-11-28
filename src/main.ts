@@ -650,8 +650,8 @@ function bootstrap() {
         targetStatsVis = clamp01((vh * 0.9 - wnRect.top) / (vh * 0.55));
       } else {
         const wnP = getSectionProgress(whyNowSection);
-        targetAnimP = clamp01((wnP - 0.05) / 0.68);
-        targetStatsVis = clamp01((wnP - 0.70) / 0.20);
+        targetAnimP = clamp01((wnP - 0.03) / 0.58);
+        targetStatsVis = clamp01((wnP - 0.54) / 0.24);
       }
 
       targetStoryP = getSectionProgress(storySection);
