@@ -5,6 +5,7 @@ import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
+import { mountGridSignalCanvas, initInteractiveSpotlightCards } from './effects/VisualAnimations';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -201,9 +202,9 @@ function buildAppHTML(): string {
             <div>
               <div class="eyebrow">${cfg.results.eyebrow}</div>
               <h2 id="results-heading" class="section-title-xl results-title">
-                ${cfg.results.titleLine1}<br />${cfg.results.titleLine2}
+                ${cfg.results.titleLine1}${cfg.results.titleLine2 ? `<br />${cfg.results.titleLine2}` : ''}
               </h2>
-              <p class="section-lead-dark">${cfg.results.subtitle}</p>
+              ${cfg.results.subtitle ? `<p class="section-lead-dark">${cfg.results.subtitle}</p>` : ''}
             </div>
             <div class="results-badge">${cfg.results.badge}</div>
           </div>
@@ -225,10 +226,11 @@ function buildAppHTML(): string {
           <div class="results-cases-grid">
             ${cfg.results.cases
               .map(
-                (c) => `
+                (c, idx) => `
               <article class="case-card">
                 <div class="case-meta">${c.client} &middot; ${c.city}</div>
                 <p class="case-summary">${c.summary}</p>
+                <div class="case-meter" aria-hidden="true"><span class="case-meter-fill" style="--meter-w:${92 + idx * 3}%"></span></div>
                 <div class="case-pill">${c.pill}</div>
               </article>
             `
@@ -236,7 +238,7 @@ function buildAppHTML(): string {
               .join('')}
           </div>
 
-          <p class="results-footnote">${cfg.results.footnote}</p>
+          ${cfg.results.footnote ? `<p class="results-footnote">${cfg.results.footnote}</p>` : ''}
         </div>
       </section>
 
@@ -451,7 +453,12 @@ function bootstrap() {
 
   document.addEventListener('pointerleave', () => setDeployHover(false));
 
-  // 2. Init Scroll Story, Services Stack, Process Diagram
+  // 1b. Mount ambient traveling cyan grid pulses & micro-nodes in Hero
+  const heroStickyEl = heroSection.querySelector<HTMLElement>('.hero-sticky');
+  if (heroStickyEl) {
+    mountGridSignalCanvas(heroStickyEl);
+  }
+  initInteractiveSpotlightCards();
   const storyCtrl = initScrollStory(storySection);
   const servicesCtrl = initServicesStack(servicesSection);
   const processCtrl = initProcessDiagram(processSection);

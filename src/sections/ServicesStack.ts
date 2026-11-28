@@ -17,16 +17,11 @@ export interface PortfolioProject {
 export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
   {
     id: 'enterprise-erp',
-    code: '§ 01 — ENTERPRISE ERP & AI HUB',
+    code: '§ 01 — ENTERPRISE ERP',
     indexLabel: '01 / 03',
-    title: 'Multi-Branch Retail Operations & AI Command System.',
-    body: 'A full-scale internal company system built for multi-branch retail operations — unifying live safe-vault reconciliation, shift floats, payroll, HR rosters, supplier returns, and an embedded AI Copilot.',
-    bullets: [
-      'LIVE FIRESTORE SYNC & SAFE VAULT TELEMETRY',
-      'BUILT-IN AI COPILOT FOR MARGINS & FORECASTING',
-      'PAYROLL, EMPLOYEES, PAYMENTS & SUPPLIER RETURNS',
-      'BILINGUAL EN / AR ROLE-BASED ADMIN HUB',
-    ],
+    title: 'Retail Operations & AI Hub.',
+    body: 'Multi-branch vault telemetry, payroll & AI copilot.',
+    bullets: ['FIRESTORE LIVE', 'AI COPILOT', 'PAYROLL & HR', 'EN / AR'],
     screens: [
       { label: 'Dashboard', src: './portfolio/anh/dashboard.png', webp: './portfolio/anh/dashboard-640.webp' },
       { label: 'AI Copilot', src: './portfolio/anh/ai-assistant.png' },
@@ -42,16 +37,11 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
   },
   {
     id: 'armia-boutique',
-    code: '§ 02 — LUXURY E-COMMERCE & PWA',
+    code: '§ 02 — LUXURY E-COMMERCE',
     indexLabel: '02 / 03',
-    title: 'Armia Boutique — Bilingual Storefront, PWA & Admin Portal.',
-    body: 'A custom luxury fashion e-commerce platform engineered for speed and conversion — featuring interactive Shop-the-Look tagging, instant EN/AR switching, installable PWA support, and a dedicated admin portal.',
-    bullets: [
-      'INTERACTIVE SHOP-THE-LOOK HOTSPOT TAGGING',
-      'INSTALLABLE PWA WITH VIP FLASH DEAL ALERTS',
-      'SLIDE-OUT CART DRAWER & STREAMLINED CHECKOUT',
-      'CUSTOM ADMIN PORTAL FOR ORDERS & COLLECTIONS',
-    ],
+    title: 'Armia Boutique & PWA.',
+    body: 'Shop-the-Look storefront, installable PWA & admin.',
+    bullets: ['HOTSPOT LOOKBOOK', 'INSTALLABLE PWA', 'SLIDE CART', 'ADMIN SUITE'],
     screens: [
       { label: 'Storefront', src: './portfolio/armia/storefront-home.png', webp: './portfolio/armia/storefront-home-1024.webp' },
       { label: 'Collections', src: './portfolio/armia/collections.png', webp: './portfolio/armia/collections-640.webp' },
@@ -62,16 +52,11 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
   },
   {
     id: 'fb-pos',
-    code: '§ 03 — F&B POS & OPERATIONS SAAS',
+    code: '§ 03 — F&B POS SAAS',
     indexLabel: '03 / 03',
-    title: 'Restaurant POS Terminal, Kitchen & Executive Suite.',
-    body: 'An end-to-end hospitality and F&B SaaS platform combining a high-speed POS terminal, live sales velocity dashboard, recipe-level inventory tracking, staff rosters, and customer loyalty management.',
-    bullets: [
-      'REAL-TIME EXECUTIVE SALES & PROFIT DASHBOARD',
-      'HIGH-SPEED TOUCH POS TERMINAL & KITCHEN ORDERS',
-      'RECIPE-LEVEL INVENTORY & LOW-STOCK ALERTS',
-      'LOYALTY CUSTOMERS, ROSTERS & ROLE-BASED LOGIN',
-    ],
+    title: 'Hospitality POS & Kitchen.',
+    body: 'Touch POS terminal, recipe stock & live analytics.',
+    bullets: ['TOUCH POS', 'LIVE VELOCITY', 'RECIPE STOCK', 'LOYALTY CRM'],
     screens: [
       { label: 'Dashboard', src: './portfolio/fb-pos/dashboard.png' },
       { label: 'POS Terminal', src: './portfolio/fb-pos/pos-terminal.png', webp: './portfolio/fb-pos/pos-terminal-480.webp' },
@@ -142,10 +127,10 @@ export function renderServicesHTML(): string {
         <header class="section-header-light">
           <div class="eyebrow">PORTFOLIO</div>
           <h2 id="services-heading" class="section-title-xl">
-            Selected work,<br />live in production.
+            Selected builds.
           </h2>
           <p class="section-lead">
-            Three real systems engineered by DEPLOY — drag any project canvas to explore screens, or click any tile to expand.
+            Drag to explore &middot; Click any screen to expand.
           </p>
         </header>
 
@@ -164,7 +149,7 @@ export function renderServicesHTML(): string {
                     <h3 class="service-card-title">${project.title}</h3>
                     <p class="service-card-body">${project.body}</p>
                   </div>
-                  <ul class="service-bullets">
+                  <ul class="service-tag-pills">
                     ${project.bullets.map((b) => `<li>${b}</li>`).join('')}
                   </ul>
                 </div>
@@ -366,6 +351,35 @@ export function initServicesStack(section: HTMLElement): ServicesController {
 
     viewport.addEventListener('pointerup', endDrag);
     viewport.addEventListener('pointercancel', endDrag);
+
+    // Subtle kinetic auto-drift when visible & untouched (pauses instantly on hover/touch)
+    let hovered = false;
+    let inView = false;
+    viewport.addEventListener('pointerenter', () => {
+      hovered = true;
+    });
+    viewport.addEventListener('pointerleave', () => {
+      hovered = false;
+    });
+    const visIo = new IntersectionObserver(
+      (entries) => {
+        inView = entries[0]?.isIntersecting ?? false;
+      },
+      { threshold: 0.15 }
+    );
+    visIo.observe(viewport);
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let driftPhase = pIdx * 2.1;
+    const tickDrift = () => {
+      window.requestAnimationFrame(tickDrift);
+      if (!inView || dragging || hovered || Math.hypot(velX, velY) > 0.3 || reduced.matches) return;
+      driftPhase += 0.008;
+      posX = clamp(posX + Math.cos(driftPhase) * 0.42, minX, maxX);
+      posY = clamp(posY + Math.sin(driftPhase * 0.75) * 0.32, minY, maxY);
+      applyTransform();
+    };
+    window.requestAnimationFrame(tickDrift);
   });
 
   return {

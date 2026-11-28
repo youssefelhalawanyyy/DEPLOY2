@@ -63,6 +63,7 @@ export function renderProcessHTML(): string {
                     stroke="rgba(12,12,13,0.22)"
                     stroke-width="1"
                   />
+                  <circle class="process-node-pulse" cx="${pt.x}" cy="${pt.y}" r="11" fill="none" stroke="#22c1ec" stroke-width="1.4" />
                   <circle cx="${pt.x}" cy="${pt.y}" r="4.5" fill="#0c0c0d" />
                 </g>
               `
