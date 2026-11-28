@@ -210,7 +210,7 @@ export const SITE_CONFIG: SiteConfig = {
     name: 'DEPLOY',
     wordmark: 'deploy',
     locationEyebrow: 'SOFTWARE ENGINEERING STUDIO',
-    email: 'hello@deploy.example',
+    email: 'deployegg@gmail.com',
     tagline:
       'Websites, SaaS platforms, internal company systems and custom software — engineered to ship.',
     legalNotice: '© 2026 DEPLOY Software Engineering. All rights reserved.',
@@ -632,7 +632,7 @@ export const SITE_CONFIG: SiteConfig = {
     successTitle: 'Project brief received',
     successBody:
       'Thanks for reaching out to DEPLOY. Our engineering team will review your requirements and follow up with next steps.',
-    note: 'Demo form — no external data is transmitted.',
+    note: 'Direct inquiries routed to deployegg@gmail.com.',
   },
   filmModal: {
     title: 'DEPLOY — How We Engineer Software',
@@ -661,8 +661,7 @@ export const SITE_CONFIG: SiteConfig = {
     ],
     officeLines: ['Software Engineering', 'Building worldwide'],
     footnotes: [
-      '¹ Illustrative engineering metrics and project examples for demonstration. Customize in src/config/siteConfig.ts.',
-      '² DEPLOY builds custom websites, SaaS platforms, internal company systems, APIs, and AI workflow tools.',
+      'DEPLOY engineers custom websites, SaaS platforms, internal company systems, APIs, and AI workflow tools — 100% code ownership.',
     ],
     copyright: '© 2026 DEPLOY Software Engineering. All rights reserved.',
     legalLinks: [
@@ -675,12 +674,12 @@ export const SITE_CONFIG: SiteConfig = {
     impressumTitle: 'Legal Notice — DEPLOY',
     impressumBody: [
       'DEPLOY Software Engineering — Custom Websites, SaaS Platforms, Internal Company Systems & Cloud Engineering.',
-      'All company details, registration numbers, and contact emails can be configured in src/config/siteConfig.ts before going live.',
+      'Direct studio inquiries: deployegg@gmail.com',
     ],
     datenschutzTitle: 'Privacy Policy — DEPLOY',
     datenschutzBody: [
-      'This website currently runs client-side with zero third-party tracking cookies. Form submissions are validated locally in your browser.',
-      'Connect your preferred backend endpoint or CRM webhook and update this policy prior to production launch.',
+      'This website uses zero third-party tracking cookies. Project inquiries submitted through the configurator are used solely to scope and reply to your build request.',
+      'For data or privacy inquiries, contact deployegg@gmail.com.',
     ],
   },
 };

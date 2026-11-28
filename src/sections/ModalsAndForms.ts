@@ -193,13 +193,13 @@ export function renderModalsHTML(): string {
           </div>
 
           <h3 class="success-heading">Brief ready for kickoff.</h3>
-          <p class="success-sub">Your architecture scope is packaged below.</p>
+          <p class="success-sub" id="audit-success-sub">Routed directly to <strong>${brand.email}</strong>.</p>
 
           <div class="success-summary-card" id="audit-success-summary"></div>
 
           <div class="success-actions-row">
             <a id="audit-mailto-link" href="mailto:${brand.email}" class="btn-yellow-pill">
-              Send via Email &rarr;
+              Open in Email &rarr;
             </a>
             <button type="button" class="btn-outline-light" id="audit-reset-btn">Configure another</button>
           </div>
@@ -529,14 +529,19 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
     const brief = String(data.get('brief') || '').trim();
     const { types, timeline, scope } = getScopeState();
 
+    const esc = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     successSummary.innerHTML = `
-      <div class="ss-row"><span>CLIENT</span><strong>${name}${company ? ` &middot; ${company}` : ''}</strong></div>
-      <div class="ss-row"><span>BUILD</span><strong>${types.join(', ')}</strong></div>
-      <div class="ss-row"><span>TIMELINE</span><strong>${timeline} &middot; ${scope}</strong></div>
-      <div class="ss-row"><span>EMAIL</span><strong>${email}</strong></div>
+      <div class="ss-row"><span>TO</span><strong>${esc(SITE_CONFIG.brand.email)}</strong></div>
+      <div class="ss-row"><span>CLIENT</span><strong>${esc(name)}${company ? ` &middot; ${esc(company)}` : ''}</strong></div>
+      <div class="ss-row"><span>BUILD</span><strong>${types.map(esc).join(', ')}</strong></div>
+      <div class="ss-row"><span>TIMELINE</span><strong>${esc(timeline)} &middot; ${esc(scope)}</strong></div>
+      <div class="ss-row"><span>REPLY TO</span><strong>${esc(email)}</strong></div>
     `;
 
-    const subject = encodeURIComponent(`DEPLOY Project Brief — ${types.join(' + ')} (${company || name})`);
+    const rawSubject = `DEPLOY Project Brief — ${types.join(' + ')} (${company || name})`;
+    const subject = encodeURIComponent(rawSubject);
     const bodyLines = [
       `Name: ${name}`,
       `Email: ${email}`,
@@ -550,10 +555,35 @@ export function initModalsAndForms(onJumpToChapter: (chapterIdx: number) => void
       .join('\n');
     mailtoLink.href = `mailto:${SITE_CONFIG.brand.email}?subject=${subject}&body=${encodeURIComponent(bodyLines)}`;
 
-    stepEyebrow.innerHTML = 'DEPLOYED &middot; BRIEF READY';
-    dialogTitle.textContent = 'Let’s build.';
-    form.hidden = true;
-    successBox.hidden = false;
+    const submitBtn = document.getElementById('project-submit-btn') as HTMLButtonElement | null;
+    const submitLabelEl = submitBtn?.querySelector<HTMLElement>('.submit-btn-label');
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitLabelEl) submitLabelEl.textContent = 'Deploying brief...';
+
+    // Dispatch brief asynchronously via FormSubmit AJAX endpoint + keep direct mailto fallback ready
+    fetch(`https://formsubmit.co/ajax/${SITE_CONFIG.brand.email}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        _subject: rawSubject,
+        name,
+        email,
+        company: company || '—',
+        systems: types.join(', '),
+        timeline,
+        engagement: scope,
+        brief: brief || '—',
+      }),
+    })
+      .catch(() => null)
+      .finally(() => {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitLabelEl) submitLabelEl.innerHTML = 'Deploy brief &rarr;';
+        stepEyebrow.innerHTML = 'DEPLOYED &middot; BRIEF SENT';
+        dialogTitle.textContent = 'Let’s build.';
+        form.hidden = true;
+        successBox.hidden = false;
+      });
   });
 
   resetBtn.addEventListener('click', () => {

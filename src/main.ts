@@ -350,6 +350,7 @@ function buildAppHTML(): string {
             <div class="footer-col-title">STUDIO</div>
             <ul>
               ${cfg.footer.officeLines.map((o) => `<li>${o}</li>`).join('')}
+              <li><a href="mailto:${cfg.brand.email}">${cfg.brand.email}</a></li>
             </ul>
           </div>
         </div>
