@@ -1,5 +1,6 @@
 import { mountFlexCarousel, type FlexCarouselController, type FlexCarouselItem } from '../three/FlexCarouselEngine';
 import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
+import { splitHeadingForScroll } from '../effects/PageScrollChoreography';
 
 export interface PortfolioScreen {
   label: string;
@@ -364,8 +365,8 @@ export function renderServicesHTML(): string {
                   <span id="pf-active-status">${first.statusPill}</span>
                 </span>
               </div>
-              <h2 id="services-heading" class="pf-seamless-title">${first.title}</h2>
-              <p class="pf-seamless-summary" id="pf-active-summary">${first.summary}</p>
+              <h2 id="services-heading" class="pf-seamless-title" data-scroll-heading>${first.title}</h2>
+              <p class="pf-seamless-summary" id="pf-active-summary" data-scroll-copy data-scroll-stagger="1">${first.summary}</p>
             </div>
 
             <div class="pf-top-controls">
@@ -507,8 +508,20 @@ export function initServicesStack(section: HTMLElement): ServicesController {
 
     morphSpeedingText(codeEl, project.code, { axis: 'x', direction: dir, durationMs: 360 });
     morphSpeedingText(statusEl, project.statusPill, { axis: 'x', direction: dir, durationMs: 380, delayMs: 25 });
-    if (titleEl) titleEl.textContent = project.title;
-    if (summaryEl) summaryEl.textContent = project.summary;
+    if (titleEl) {
+      delete titleEl.dataset.stSplit;
+      titleEl.textContent = project.title;
+      splitHeadingForScroll(titleEl);
+      titleEl.classList.remove('pf-tab-title-enter');
+      void titleEl.offsetWidth;
+      titleEl.classList.add('pf-tab-title-enter');
+    }
+    if (summaryEl) {
+      summaryEl.textContent = project.summary;
+      summaryEl.classList.remove('pf-tab-copy-enter');
+      void summaryEl.offsetWidth;
+      summaryEl.classList.add('pf-tab-copy-enter');
+    }
     if (viewMoreBtn) viewMoreBtn.dataset.openLrProject = String(clamped);
     if (ctaLabelEl) ctaLabelEl.textContent = project.ctaLabel;
     if (metricsHost) {

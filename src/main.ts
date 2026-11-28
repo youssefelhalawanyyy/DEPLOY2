@@ -13,6 +13,7 @@ import {
   updateSpeedingOdometer,
   bindSpeedingOdometerHover,
 } from './effects/SpeedingText';
+import { enhanceScrollTypographyAndSections } from './effects/PageScrollChoreography';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -138,7 +139,7 @@ function buildAppHTML(): string {
       <section id="why-now" class="why-now-section" aria-labelledby="why-now-eyebrow">
         <div class="why-now-sticky">
           <div class="container why-now-inner">
-            <div id="why-now-eyebrow" class="eyebrow">${cfg.whyNow.eyebrow}</div>
+            <div id="why-now-eyebrow" class="eyebrow" data-scroll-copy>${cfg.whyNow.eyebrow}</div>
             <p class="why-now-statement" id="why-now-statement">
               ${renderWhyNowWords()}
             </p>
@@ -173,23 +174,23 @@ function buildAppHTML(): string {
         <div class="container">
           <div class="results-top-row">
             <div>
-              <div class="eyebrow">${cfg.results.eyebrow}</div>
-              <h2 id="results-heading" class="section-title-xl results-title">
+              <div class="eyebrow" data-scroll-copy>${cfg.results.eyebrow}</div>
+              <h2 id="results-heading" class="section-title-xl results-title" data-scroll-heading>
                 ${cfg.results.titleLine1}${cfg.results.titleLine2 ? `<br />${cfg.results.titleLine2}` : ''}
               </h2>
-              ${cfg.results.subtitle ? `<p class="section-lead-dark">${cfg.results.subtitle}</p>` : ''}
+              ${cfg.results.subtitle ? `<p class="section-lead-dark" data-scroll-copy data-scroll-stagger="1">${cfg.results.subtitle}</p>` : ''}
             </div>
-            <div class="results-badge">${cfg.results.badge}</div>
+            <div class="results-badge" data-scroll-copy data-scroll-stagger="1">${cfg.results.badge}</div>
           </div>
 
           <div class="results-metrics-grid" id="results-metrics-grid">
             ${cfg.results.metrics
               .map(
-                (m) => `
-              <div class="result-metric">
+                (m, mIdx) => `
+              <div class="result-metric" data-scroll-card data-scroll-stagger="${mIdx}">
                 <div class="rm-number">${renderSpeedingOdometerHTML(`${m.prefix || ''}${m.target}${m.suffix}`)}</div>
-                <div class="rm-label">${m.label}</div>
-                <div class="rm-sublabel">${m.sublabel}</div>
+                <div class="rm-label" data-scroll-copy>${m.label}</div>
+                <div class="rm-sublabel" data-scroll-copy data-scroll-stagger="1">${m.sublabel}</div>
               </div>
             `
               )
@@ -200,9 +201,9 @@ function buildAppHTML(): string {
             ${cfg.results.cases
               .map(
                 (c, idx) => `
-              <article class="case-card">
-                <div class="case-meta">${c.client} &middot; ${c.city}</div>
-                <p class="case-summary">${c.summary}</p>
+              <article class="case-card" data-scroll-card data-scroll-stagger="${idx}">
+                <div class="case-meta" data-scroll-copy>${c.client} &middot; ${c.city}</div>
+                <p class="case-summary" data-scroll-copy data-scroll-stagger="1">${c.summary}</p>
                 <div class="case-meter" aria-hidden="true"><span class="case-meter-fill" style="--meter-w:${92 + idx * 3}%"></span></div>
                 <div class="case-pill">${c.pill}</div>
               </article>
@@ -221,8 +222,8 @@ function buildAppHTML(): string {
       <!-- 7. CLIENTS & QUERIES MARQUEE (With Accessible Pause/Play Toggle) -->
       <section class="clients-section" aria-labelledby="clients-heading">
         <div class="container">
-          <div class="eyebrow">${cfg.clients.eyebrow}</div>
-          <h2 id="clients-heading" class="clients-title">${cfg.clients.title}</h2>
+          <div class="eyebrow" data-scroll-copy>${cfg.clients.eyebrow}</div>
+          <h2 id="clients-heading" class="clients-title" data-scroll-heading>${cfg.clients.title}</h2>
         </div>
 
         <div class="marquee-shell" id="clients-marquee">
@@ -245,7 +246,7 @@ function buildAppHTML(): string {
           </div>
         </div>
 
-        <div class="container clients-footer-row">
+        <div class="container clients-footer-row" data-scroll-copy>
           <span class="clients-disclaimer">${cfg.clients.disclaimer}</span>
           <button
             type="button"
@@ -258,18 +259,18 @@ function buildAppHTML(): string {
         </div>
       </section>
 
-      <!-- 8. CONTACT + INTERACTIVE 3D DACH MAP -->
+      <!-- 8. CONTACT + INTERACTIVE 3D MASCOT -->
       <section id="contact" class="contact-section" aria-labelledby="contact-heading">
         <div class="container contact-grid">
           <div class="contact-copy">
-            <div class="eyebrow">${cfg.contact.eyebrow}</div>
+            <div class="eyebrow" data-scroll-copy>${cfg.contact.eyebrow}</div>
             <h2 id="contact-heading" class="contact-headline">
-              <span class="ch-muted">${cfg.contact.mutedHeadline}</span>
-              <span class="ch-bold">${cfg.contact.boldHeadline}</span>
+              <span class="ch-muted" data-scroll-heading>${cfg.contact.mutedHeadline}</span>
+              <span class="ch-bold" data-scroll-heading>${cfg.contact.boldHeadline}</span>
             </h2>
-            <p class="contact-body">${cfg.contact.body}</p>
+            <p class="contact-body" data-scroll-copy data-scroll-stagger="1">${cfg.contact.body}</p>
 
-            <div class="contact-cta-row">
+            <div class="contact-cta-row" data-scroll-copy data-scroll-stagger="2">
               <button type="button" class="btn-yellow-pill" data-open-audit>
                 ${cfg.contact.primaryCta} <span aria-hidden="true">&rarr;</span>
               </button>
@@ -279,12 +280,12 @@ function buildAppHTML(): string {
               </span>
             </div>
 
-            <p class="contact-caption">${cfg.contact.caption}</p>
+            <p class="contact-caption" data-scroll-copy data-scroll-stagger="2">${cfg.contact.caption}</p>
           </div>
 
-          <div class="contact-logo-panel">
+          <div class="contact-logo-panel" data-scroll-card data-scroll-stagger="1">
             <div class="contact-logo-stage" id="contact-logo-3d-host"></div>
-            <div class="map-hint">DRAG TO ROTATE &middot; DEPLOY 3D</div>
+            <div class="map-hint" data-scroll-copy>DRAG TO ROTATE &middot; DEPLOY 3D</div>
           </div>
         </div>
       </section>
@@ -292,7 +293,7 @@ function buildAppHTML(): string {
 
     <!-- 9. STUDIO FOOTER (Curved Dark Cap + Alabaster Light Stage) -->
     <footer class="site-footer" id="site-footer" data-asset-slot="legal-mark">
-      <div class="footer-dark-cap">
+      <div class="footer-dark-cap" data-scroll-copy data-scroll-bottom>
         <div class="footer-cap-inner">
           <p class="footer-copy">${cfg.footer.copyright}</p>
           <nav class="footer-cap-nav" aria-label="Footer">
@@ -311,15 +312,15 @@ function buildAppHTML(): string {
       <div class="footer-light-body">
         <div class="container footer-light-inner">
           <div class="footer-center-brand">
-            <a href="#top" class="footer-wordmark-lockup" aria-label="${cfg.brand.name} back to top">
+            <a href="#top" class="footer-wordmark-lockup" aria-label="${cfg.brand.name} back to top" data-scroll-card data-scroll-bottom>
               ${renderLogoMark('legal-mark')}
               <span class="fw-bold">deploy</span><span class="fw-light">studio</span>
             </a>
-            <p class="footer-agency-sub">
+            <p class="footer-agency-sub" data-scroll-heading data-scroll-bottom>
               We Build, You Lead &mdash; Custom Websites, SaaS Platforms &amp; Company Systems
             </p>
 
-            <div class="footer-social-row" aria-label="Studio links">
+            <div class="footer-social-row" aria-label="Studio links" data-scroll-copy data-scroll-bottom data-scroll-stagger="1">
               <a
                 href="https://github.com/youssefelhalawanyyy"
                 target="_blank"
@@ -355,7 +356,7 @@ function buildAppHTML(): string {
             </div>
           </div>
 
-          <div class="footer-pill-actions">
+          <div class="footer-pill-actions" data-scroll-card data-scroll-bottom data-scroll-stagger="2">
             <button type="button" class="footer-white-pill" id="replay-tour-btn">
               <span aria-hidden="true">&uarr;</span> ${cfg.footer.replayLabel}
             </button>
@@ -369,7 +370,7 @@ function buildAppHTML(): string {
             </a>
           </div>
 
-          <p class="footer-dm-line">
+          <p class="footer-dm-line" data-scroll-copy data-scroll-bottom data-scroll-stagger="2">
             If you have any questions feel free to reach out &mdash;
             <a href="mailto:${cfg.brand.email}">${cfg.brand.email}</a>
           </p>
@@ -388,9 +389,11 @@ function bootstrap() {
   ensureSpeedBlurDefs();
   root.innerHTML = buildAppHTML();
   bindSpeedingOdometerHover(root);
+  enhanceScrollTypographyAndSections(root, null);
 
   const header = document.getElementById('site-header')!;
   const heroSection = document.getElementById('top')!;
+  const heroTopEyebrow = heroSection.querySelector<HTMLElement>('.hero-top-eyebrow');
   const heroBottomBar = heroSection.querySelector<HTMLElement>('.hero-bottom-bar')!;
   const heroDisplayTitle = heroSection.querySelector<HTMLElement>('.hero-display-title')!;
   const heroReadingCaption = document.getElementById('hero-reading-caption')!;
@@ -576,23 +579,19 @@ function bootstrap() {
     });
   }
 
-  // 5c. Smooth compositor-only scroll reveal for cards across mobile & desktop
-  const revealTargets = Array.from(
-    document.querySelectorAll<HTMLElement>('.portfolio-card, .result-metric, .case-card, .process-mobile-card')
-  );
-  revealTargets.forEach((el) => el.classList.add('reveal-on-scroll'));
+  // 5c. Scroll-triggered case meter fills inside Results
+  const caseCards = Array.from(document.querySelectorAll<HTMLElement>('.case-card'));
   const revealIo = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-in-view');
-          revealIo.unobserve(entry.target);
         }
       });
     },
-    { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+    { threshold: 0.15 }
   );
-  revealTargets.forEach((el) => revealIo.observe(el));
+  caseCards.forEach((el) => revealIo.observe(el));
 
   // Reduced motion listener
   const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -722,12 +721,20 @@ function bootstrap() {
     smoothResP += (targetResP - smoothResP) * damp;
     smoothProcP += (targetProcP - smoothProcP) * damp;
 
-    // A. Hero scroll progress
+    // A. Hero scroll progress + physical depth parallax
     sphereCtrl.setScrollProgress(smoothHeroP);
     const uiFade = clamp01(1 - smoothHeroP * 2.8);
     heroBottomBar.style.opacity = uiFade.toFixed(3);
+    heroBottomBar.style.transform = reduced ? '' : `translate3d(0, ${(smoothHeroP * 32).toFixed(1)}px, 0)`;
+    if (heroTopEyebrow) {
+      heroTopEyebrow.style.opacity = uiFade.toFixed(3);
+      heroTopEyebrow.style.transform = reduced ? '' : `translate3d(0, ${(-smoothHeroP * 26).toFixed(1)}px, 0)`;
+    }
     heroReadingCaption.style.opacity = (isOverDeploy ? uiFade : 0).toFixed(3);
     heroDisplayTitle.style.opacity = clamp01(1 - Math.max(0, smoothHeroP - 0.34) * 2.5).toFixed(3);
+    heroDisplayTitle.style.transform = reduced
+      ? ''
+      : `translate3d(0, ${(-smoothHeroP * 56).toFixed(1)}px, 0) scale(${(1 - smoothHeroP * 0.045).toFixed(4)})`;
 
     // B. Why DEPLOY word-by-word illumination + rolling odometer stats
     const litCount = Math.floor(smoothAnimP * (whyNowWords.length + 1));

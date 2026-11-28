@@ -26,14 +26,14 @@ export function renderProcessHTML(): string {
       <div class="process-sticky">
         <div class="container process-grid">
           <div class="process-intro">
-            <div class="eyebrow">${process.eyebrow}</div>
-            <h2 id="process-heading" class="section-title-xl">
+            <div class="eyebrow" data-scroll-copy>${process.eyebrow}</div>
+            <h2 id="process-heading" class="section-title-xl" data-scroll-heading>
               ${process.titleLine1}<br />${process.titleLine2}
             </h2>
-            <p class="section-lead">${process.subtitle}</p>
+            <p class="section-lead" data-scroll-copy data-scroll-stagger="1">${process.subtitle}</p>
 
             <!-- Live Speeding Text Step Counter synced to engineering curve -->
-            <div class="process-live-counter" aria-live="polite">
+            <div class="process-live-counter" aria-live="polite" data-scroll-copy data-scroll-stagger="2">
               <div class="plc-num-row">
                 <span class="plc-active-num" id="proc-speed-num" data-spd-value="${process.steps[0].num}">${process.steps[0].num}</span>
                 <span class="plc-total">/ 0${process.steps.length}</span>
@@ -115,15 +115,15 @@ export function renderProcessHTML(): string {
       <div class="process-mobile-list">
         <div class="container">
           <div class="process-mobile-header">
-            <div class="eyebrow">${process.eyebrow}</div>
-            <h2 class="section-title-xl">${process.titleLine1}<br />${process.titleLine2}</h2>
-            <p class="section-lead">${process.subtitle}</p>
+            <div class="eyebrow" data-scroll-copy>${process.eyebrow}</div>
+            <h2 class="section-title-xl" data-scroll-heading>${process.titleLine1}<br />${process.titleLine2}</h2>
+            <p class="section-lead" data-scroll-copy data-scroll-stagger="1">${process.subtitle}</p>
           </div>
           <ol class="process-mobile-cards">
             ${process.steps
               .map(
-                (step) => `
-              <li class="process-mobile-card">
+                (step, sIdx) => `
+              <li class="process-mobile-card" data-scroll-card data-scroll-stagger="${sIdx % 2}">
                 <div class="pm-top">
                   <span class="ps-num">${step.num}</span>
                   <h3>${step.title}</h3>

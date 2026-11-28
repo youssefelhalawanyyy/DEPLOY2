@@ -24,6 +24,7 @@
 
 html {
   scroll-behavior: auto;
+  scroll-padding-top: var(--header-h);
   font-family: var(--font-sans);
   background: var(--bg-black);
   color: var(--ink-light);
@@ -3337,6 +3338,7 @@ dialog::backdrop {
   height: 100vh;
   height: 100dvh;
   max-height: 100dvh;
+  scroll-padding-top: 72px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -3403,22 +3405,61 @@ dialog::backdrop {
   min-height: 100dvh;
   background: #f6f5f1;
   color: #0b0c0f;
+  overflow-anchor: none;
 }
 
-/* Sticky Case-Study Top Navigation */
+/* Sticky State-Aware Case-Study Top Navigation + Scroll Progress */
 .h51-topbar {
   position: sticky;
   top: 0;
   z-index: 40;
+  container-type: scroll-state;
+  container-name: h51-topbar;
+}
+
+.h51-topbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 12px clamp(16px, 3vw, 40px);
-  background: rgba(246, 245, 241, 0.88);
+  background: rgba(246, 245, 241, 0.84);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(11, 12, 15, 0.09);
+  border-bottom: 1px solid rgba(11, 12, 15, 0.08);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+@container h51-topbar scroll-state(stuck: top) {
+  .h51-topbar-inner {
+    background: rgba(246, 245, 241, 0.95);
+    box-shadow: 0 10px 30px -16px rgba(9, 11, 16, 0.16);
+  }
+}
+
+.h51-topbar.is-stuck .h51-topbar-inner {
+  background: rgba(246, 245, 241, 0.95);
+  box-shadow: 0 10px 30px -16px rgba(9, 11, 16, 0.16);
+}
+
+.h51-scroll-progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 2px;
+  background: rgba(11, 12, 15, 0.05);
+  pointer-events: none;
+  overflow: clip;
+}
+
+.h51-scroll-progress-fill {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  background: linear-gradient(90deg, #156ec4 0%, #22c1ec 100%);
+  transform-origin: left center;
+  transform: scaleX(0);
+  will-change: transform;
 }
 
 .h51-topbar-left,
@@ -3861,15 +3902,18 @@ dialog::backdrop {
 .h51-wall-plane {
   --tilt-x: 0deg;
   --tilt-y: 0deg;
+  --scroll-shift-y: 0px;
+  --scroll-rot-y: 0deg;
+  --scroll-rot-x: 0deg;
   display: grid;
   grid-template-columns: repeat(3, clamp(235px, 21vw, 315px));
   gap: 0;
   margin-block-start: -180px;
   transform-style: preserve-3d;
   transform:
-    translate3d(42px, 0, -40px)
-    rotateY(calc(-24deg + var(--tilt-y)))
-    rotateX(calc(8deg + var(--tilt-x)))
+    translate3d(42px, var(--scroll-shift-y), -40px)
+    rotateY(calc(-24deg + var(--tilt-y) + var(--scroll-rot-y)))
+    rotateX(calc(8deg + var(--tilt-x) + var(--scroll-rot-x)))
     rotateZ(-1.6deg);
   box-shadow: -40px 48px 90px rgba(9, 11, 16, 0.22);
   will-change: transform;
@@ -4566,7 +4610,7 @@ dialog::backdrop {
 }
 
 @media (max-width: 720px) {
-  .h51-topbar {
+  .h51-topbar-inner {
     flex-wrap: wrap;
     padding: 10px 14px;
   }
@@ -6060,4 +6104,209 @@ dialog::backdrop {
 .ps-num,
 .ps-time {
   display: inline-block;
+}
+
+/* ============================================================
+   FULL-PAGE SCROLL CHOREOGRAPHY — SECTIONS & KINETIC TEXT
+   Driven natively on compositor via CSS `animation-timeline: view()`
+   with automatic JS fallback when unsupported
+   ============================================================ */
+.st-word-mask {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: bottom;
+  padding-block: 0.08em;
+  margin-block: -0.08em;
+}
+
+.st-word {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* Tab switch & Case-Study Hero word cascade */
+@media (prefers-reduced-motion: no-preference) {
+  .pf-tab-title-enter .st-word,
+  .h51-hero-title .st-word {
+    animation: pf-word-pop 0.56s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .pf-tab-title-enter .st-b1, .pf-tab-title-enter .st-b2,
+  .h51-hero-title .st-b1, .h51-hero-title .st-b2 { animation-delay: 35ms; }
+  .pf-tab-title-enter .st-b3, .pf-tab-title-enter .st-b4,
+  .h51-hero-title .st-b3, .h51-hero-title .st-b4 { animation-delay: 70ms; }
+  .pf-tab-title-enter .st-b5, .pf-tab-title-enter .st-b6,
+  .h51-hero-title .st-b5, .h51-hero-title .st-b6 { animation-delay: 105ms; }
+  .pf-tab-title-enter .st-b7, .pf-tab-title-enter .st-b8,
+  .h51-hero-title .st-b7, .h51-hero-title .st-b8 { animation-delay: 140ms; }
+  .pf-tab-title-enter .st-b9, .pf-tab-title-enter .st-b10, .pf-tab-title-enter .st-b11,
+  .h51-hero-title .st-b9, .h51-hero-title .st-b10, .h51-hero-title .st-b11 { animation-delay: 175ms; }
+
+  .pf-tab-copy-enter {
+    animation: pf-copy-pop 0.44s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes pf-word-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 95%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pf-copy-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes st-word-reveal {
+  from {
+    opacity: 0.12;
+    transform: translate3d(0, 96%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0%, 0);
+  }
+}
+
+@keyframes st-copy-reveal {
+  from {
+    opacity: 0.08;
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes st-card-reveal {
+  from {
+    opacity: 0.1;
+    transform: perspective(1100px) translate3d(var(--card-from-x, 0px), 44px, 0) rotateX(4deg) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1100px) translate3d(0, 0, 0) rotateX(0deg) scale(1);
+  }
+}
+
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* 1. Word-by-word masked scroll reveal for headings */
+    [data-scroll-heading] {
+      view-timeline: --st-heading block;
+    }
+
+    [data-scroll-heading] .st-word {
+      animation: st-word-reveal linear both;
+      animation-timeline: --st-heading;
+      animation-range: entry 5% cover 34%;
+    }
+
+    [data-scroll-heading] .st-b0 { animation-range: entry 3% cover 26%; }
+    [data-scroll-heading] .st-b1 { animation-range: entry 5% cover 28%; }
+    [data-scroll-heading] .st-b2 { animation-range: entry 7% cover 30%; }
+    [data-scroll-heading] .st-b3 { animation-range: entry 9% cover 32%; }
+    [data-scroll-heading] .st-b4 { animation-range: entry 11% cover 34%; }
+    [data-scroll-heading] .st-b5 { animation-range: entry 13% cover 36%; }
+    [data-scroll-heading] .st-b6 { animation-range: entry 15% cover 38%; }
+    [data-scroll-heading] .st-b7 { animation-range: entry 17% cover 40%; }
+    [data-scroll-heading] .st-b8 { animation-range: entry 19% cover 42%; }
+    [data-scroll-heading] .st-b9 { animation-range: entry 21% cover 44%; }
+    [data-scroll-heading] .st-b10 { animation-range: entry 23% cover 46%; }
+    [data-scroll-heading] .st-b11 { animation-range: entry 25% cover 48%; }
+
+    /* Bottom-of-page headings finish within entry range so maxScroll never leaves words half-revealed */
+    [data-scroll-heading][data-scroll-bottom] .st-b0 { animation-range: entry 0% entry 68%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b1 { animation-range: entry 2% entry 71%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b2 { animation-range: entry 4% entry 74%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b3 { animation-range: entry 6% entry 77%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b4 { animation-range: entry 8% entry 80%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b5 { animation-range: entry 10% entry 83%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b6 { animation-range: entry 12% entry 86%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b7 { animation-range: entry 14% entry 89%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b8 { animation-range: entry 16% entry 92%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b9 { animation-range: entry 18% entry 94%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b10 { animation-range: entry 20% entry 96%; }
+    [data-scroll-heading][data-scroll-bottom] .st-b11 { animation-range: entry 22% entry 98%; }
+
+    /* 2. Eyebrows, Paragraphs, Meta & Stack Pills */
+    [data-scroll-copy] {
+      will-change: transform, opacity;
+      animation: st-copy-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 34%;
+    }
+
+    [data-scroll-copy][data-scroll-stagger='1'] {
+      animation-range: entry 11% cover 39%;
+    }
+
+    [data-scroll-copy][data-scroll-stagger='2'] {
+      animation-range: entry 17% cover 44%;
+    }
+
+    [data-scroll-copy][data-scroll-stagger='3'] {
+      animation-range: entry 22% cover 48%;
+    }
+
+    [data-scroll-copy][data-scroll-bottom] {
+      animation-range: entry 0% entry 90%;
+    }
+
+    [data-scroll-copy][data-scroll-bottom][data-scroll-stagger='1'] {
+      animation-range: entry 6% entry 94%;
+    }
+
+    [data-scroll-copy][data-scroll-bottom][data-scroll-stagger='2'] {
+      animation-range: entry 12% entry 98%;
+    }
+
+    /* 3. Section Cards, Bento Modules, Transformation Blocks & Footer Stage */
+    [data-scroll-card] {
+      will-change: transform, opacity;
+      animation: st-card-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 36%;
+    }
+
+    [data-scroll-card][data-scroll-stagger='1'] {
+      animation-range: entry 10% cover 41%;
+    }
+
+    [data-scroll-card][data-scroll-stagger='2'] {
+      animation-range: entry 16% cover 46%;
+    }
+
+    [data-scroll-card][data-scroll-bottom] {
+      animation-range: entry 0% entry 92%;
+    }
+
+    [data-scroll-card][data-scroll-bottom][data-scroll-stagger='2'] {
+      animation-range: entry 8% entry 97%;
+    }
+  }
+}
+
+/* Mandatory Reduced Motion Safety: guarantee full static legibility across all pages */
+@media (prefers-reduced-motion: reduce) {
+  [data-scroll-heading],
+  [data-scroll-heading] .st-word,
+  [data-scroll-copy],
+  [data-scroll-card] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

@@ -1,6 +1,7 @@
 import { PORTFOLIO_PROJECTS, type PortfolioProject, type PortfolioScreen } from './ServicesStack';
 import { SITE_CONFIG } from '../config/siteConfig';
 import { morphSpeedingText, streakRevealElement } from '../effects/SpeedingText';
+import { enhanceScrollTypographyAndSections, splitHeadingForScroll } from '../effects/PageScrollChoreography';
 
 export interface LinusGalleryController {
   openProject: (projectIdx: number) => void;
@@ -130,44 +131,49 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
   `;
 
   return `
-    <!-- Sticky Studio Top Bar -->
-    <header class="h51-topbar">
-      <div class="h51-topbar-left">
-        <button type="button" class="h51-back-pill" data-lr-close autofocus>
-          <span aria-hidden="true">&larr;</span> Portfolio
-        </button>
-        <span class="h51-studio-tag">DEPLOY &middot; WE BUILD, YOU LEAD</span>
-      </div>
+    <!-- Sticky State-Aware Studio Top Bar + Live Scroll Progress -->
+    <header class="h51-topbar" id="h51-topbar">
+      <div class="h51-topbar-inner">
+        <div class="h51-topbar-left">
+          <button type="button" class="h51-back-pill" data-lr-close autofocus>
+            <span aria-hidden="true">&larr;</span> Portfolio
+          </button>
+          <span class="h51-studio-tag">DEPLOY &middot; WE BUILD, YOU LEAD</span>
+        </div>
 
-      <nav class="h51-project-tabs" aria-label="Switch case study">
-        ${PORTFOLIO_PROJECTS.map(
-          (p, idx) => `
+        <nav class="h51-project-tabs" aria-label="Switch case study">
+          ${PORTFOLIO_PROJECTS.map(
+            (p, idx) => `
+            <button
+              type="button"
+              class="h51-ptab ${idx === normIdx ? 'is-active' : ''}"
+              data-lr-switch="${idx}"
+            >
+              <span class="h51-ptab-num">${p.tabNum}</span>
+              <span>${p.tabTitle}</span>
+            </button>
+          `
+          ).join('')}
+        </nav>
+
+        <div class="h51-topbar-right">
           <button
             type="button"
-            class="h51-ptab ${idx === normIdx ? 'is-active' : ''}"
-            data-lr-switch="${idx}"
+            class="h51-pause-btn"
+            id="h51-wall-pause-btn"
+            aria-label="${wallPaused ? 'Play gallery wall motion' : 'Pause gallery wall motion'}"
           >
-            <span class="h51-ptab-num">${p.tabNum}</span>
-            <span>${p.tabTitle}</span>
+            <span aria-hidden="true">${wallPaused ? '&#9654;' : '&#10074;&#10074;'}</span>
+            <span>${wallPaused ? 'Play wall' : 'Pause wall'}</span>
           </button>
-        `
-        ).join('')}
-      </nav>
-
-      <div class="h51-topbar-right">
-        <button
-          type="button"
-          class="h51-pause-btn"
-          id="h51-wall-pause-btn"
-          aria-label="${wallPaused ? 'Play gallery wall motion' : 'Pause gallery wall motion'}"
-        >
-          <span aria-hidden="true">${wallPaused ? '&#9654;' : '&#10074;&#10074;'}</span>
-          <span>${wallPaused ? 'Play wall' : 'Pause wall'}</span>
-        </button>
-        <button type="button" class="h51-cta-btn" data-lr-start-project>
-          Start a project <span aria-hidden="true">&rarr;</span>
-        </button>
-        <button type="button" class="h51-close-circle" data-lr-close aria-label="Close case study">&times;</button>
+          <button type="button" class="h51-cta-btn" data-lr-start-project>
+            Start a project <span aria-hidden="true">&rarr;</span>
+          </button>
+          <button type="button" class="h51-close-circle" data-lr-close aria-label="Close case study">&times;</button>
+        </div>
+      </div>
+      <div class="h51-scroll-progress" aria-hidden="true">
+        <span class="h51-scroll-progress-fill" id="h51-scroll-progress-fill"></span>
       </div>
     </header>
 
@@ -240,20 +246,20 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
     <section class="h51-deepdive-section" id="lr-information-block">
       <div class="h51-container">
         <div class="h51-transformation-grid">
-          <div class="h51-trans-card is-challenge">
-            <span class="h51-sec-kicker">01 &middot; THE BOTTLENECK</span>
-            <h2>What held operations back</h2>
-            <p>${project.challenge}</p>
+          <div class="h51-trans-card is-challenge" data-scroll-card data-scroll-x="-32" data-scroll-stagger="0" style="--card-from-x: -32px;">
+            <span class="h51-sec-kicker" data-scroll-copy>01 &middot; THE BOTTLENECK</span>
+            <h2 data-scroll-heading>What held operations back</h2>
+            <p data-scroll-copy data-scroll-stagger="1">${project.challenge}</p>
           </div>
 
-          <div class="h51-trans-arrow" aria-hidden="true">&rarr;</div>
+          <div class="h51-trans-arrow" aria-hidden="true" data-scroll-card data-scroll-stagger="1">&rarr;</div>
 
-          <div class="h51-trans-card is-solution">
-            <span class="h51-sec-kicker">02 &middot; ENGINEERED OUTCOME</span>
-            <h2>Unified production architecture</h2>
-            <p>${project.summary}</p>
+          <div class="h51-trans-card is-solution" data-scroll-card data-scroll-x="32" data-scroll-stagger="2" style="--card-from-x: 32px;">
+            <span class="h51-sec-kicker" data-scroll-copy>02 &middot; ENGINEERED OUTCOME</span>
+            <h2 data-scroll-heading>Unified production architecture</h2>
+            <p data-scroll-copy data-scroll-stagger="1">${project.summary}</p>
             <ul class="h51-stack-row" aria-label="Production stack">
-              ${project.stack.map((s) => `<li>${s}</li>`).join('')}
+              ${project.stack.map((s, sIdx) => `<li data-scroll-copy data-scroll-stagger="${(sIdx % 3) + 1}">${s}</li>`).join('')}
             </ul>
           </div>
         </div>
@@ -261,21 +267,21 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
         <!-- 4 Engineered Subsystems Bento -->
         <div class="h51-modules-block">
           <div class="h51-section-head">
-            <span class="h51-sec-kicker">03 &middot; CORE SUBSYSTEMS</span>
-            <h2>Engineered from database schema to pixel.</h2>
+            <span class="h51-sec-kicker" data-scroll-copy>03 &middot; CORE SUBSYSTEMS</span>
+            <h2 data-scroll-heading>Engineered from database schema to pixel.</h2>
           </div>
 
           <div class="h51-modules-grid">
             ${project.features
               .map(
                 (feat, fIdx) => `
-              <article class="h51-module-card">
+              <article class="h51-module-card" data-scroll-card data-scroll-stagger="${fIdx % 2}" style="--card-from-x: ${fIdx % 2 === 0 ? '-20px' : '20px'};">
                 <div class="h51-mod-top">
                   <span class="h51-mod-num">MODULE ${pad2(fIdx + 1)}</span>
                   <span class="h51-mod-check" aria-hidden="true">&#10003;</span>
                 </div>
-                <h3>${feat.title}</h3>
-                <p>${feat.detail}</p>
+                <h3 data-scroll-heading>${feat.title}</h3>
+                <p data-scroll-copy data-scroll-stagger="1">${feat.detail}</p>
               </article>
             `
               )
@@ -287,10 +293,10 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
         <div class="h51-screens-block" id="h51-exhibition-block">
           <div class="h51-section-head h51-exhibition-head">
             <div>
-              <span class="h51-sec-kicker">04 &middot; COMPLETE EXHIBITION (${project.screens.length} PLATES)</span>
-              <h2>Every production screen, annotated.</h2>
+              <span class="h51-sec-kicker" data-scroll-copy>04 &middot; COMPLETE EXHIBITION (${project.screens.length} PLATES)</span>
+              <h2 data-scroll-heading>Every production screen, annotated.</h2>
             </div>
-            <div class="h51-stack-counter-pill" aria-hidden="true">
+            <div class="h51-stack-counter-pill" aria-hidden="true" data-scroll-copy data-scroll-stagger="1">
               <span>STACKING PLATE</span>
               <strong><span id="h51-stack-active-num" data-spd-value="01">01</span> / ${pad2(project.screens.length)}</strong>
             </div>
@@ -351,12 +357,12 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
         </div>
 
         <!-- Bottom Launch & Next Project Banner -->
-        <footer class="h51-bottom-banner">
+        <footer class="h51-bottom-banner" data-scroll-card data-scroll-bottom>
           <div>
-            <span class="h51-sec-kicker">DEPLOY SOFTWARE ENGINEERING &middot; ${SITE_CONFIG.brand.email}</span>
-            <h2>We build, you lead. Ready to ship yours?</h2>
+            <span class="h51-sec-kicker" data-scroll-copy data-scroll-bottom>DEPLOY SOFTWARE ENGINEERING &middot; ${SITE_CONFIG.brand.email}</span>
+            <h2 data-scroll-heading data-scroll-bottom>We build, you lead. Ready to ship yours?</h2>
           </div>
-          <div class="h51-bottom-actions">
+          <div class="h51-bottom-actions" data-scroll-copy data-scroll-bottom data-scroll-stagger="1">
             <button type="button" class="h51-cta-btn is-large" data-lr-start-project>
               ${project.ctaLabel} <span aria-hidden="true">&rarr;</span>
             </button>
@@ -391,6 +397,7 @@ export function initLinusGalleryModal(
   let wallPaused = false;
   let tiltRaf = 0;
   let stackCleanup: (() => void) | null = null;
+  let pageScrollCleanup: (() => void) | null = null;
   let targetTiltX = 0;
   let targetTiltY = 0;
   let curTiltX = 0;
@@ -514,6 +521,11 @@ export function initLinusGalleryModal(
     const stackRoot = contentHost.querySelector<HTMLElement>('#h51-scroll-stack');
     const stackInner = contentHost.querySelector<HTMLElement>('#h51-scroll-stack-inner');
     const activeNumEl = contentHost.querySelector<HTMLElement>('#h51-stack-active-num');
+    const topbarEl = contentHost.querySelector<HTMLElement>('#h51-topbar');
+    const progressFillEl = contentHost.querySelector<HTMLElement>('#h51-scroll-progress-fill');
+    const heroStageEl = contentHost.querySelector<HTMLElement>('#h51-hero-stage');
+    const heroCopyEl = heroStageEl?.querySelector<HTMLElement>('.h51-copy-col') ?? null;
+    const wallPlaneEl = contentHost.querySelector<HTMLElement>('#h51-wall-plane');
     if (!stackRoot || !stackInner) return;
 
     const slots = Array.from(stackInner.querySelectorAll<HTMLElement>('[data-stack-slot]'));
@@ -540,6 +552,15 @@ export function initLinusGalleryModal(
       if (!dialog.open) return;
 
       if (motionMq.matches) {
+        if (heroCopyEl) {
+          write('hc-tf', '', (v) => { heroCopyEl.style.transform = v; });
+          write('hc-op', '', (v) => { heroCopyEl.style.opacity = v; });
+        }
+        if (wallPlaneEl) {
+          write('wp-sy', '0px', (v) => { wallPlaneEl.style.setProperty('--scroll-shift-y', v); });
+          write('wp-ry', '0deg', (v) => { wallPlaneEl.style.setProperty('--scroll-rot-y', v); });
+          write('wp-rx', '0deg', (v) => { wallPlaneEl.style.setProperty('--scroll-rot-x', v); });
+        }
         cards.forEach((card, i) => {
           if (!card) return;
           write(`tf-${i}`, '', (v) => { card.style.transform = v; });
@@ -549,6 +570,49 @@ export function initLinusGalleryModal(
           if (shade) write(`dm-${i}`, '0', (v) => { shade.style.opacity = v; });
         });
         return;
+      }
+
+      // 1. Live Modal Scroll Progress & State-Aware Topbar
+      const scrollTop = dialog.scrollTop;
+      const maxScroll = Math.max(1, dialog.scrollHeight - dialog.clientHeight);
+      const totalP = clamp01(scrollTop / maxScroll);
+      if (progressFillEl) {
+        write('prog', `scaleX(${totalP.toFixed(4)})`, (v) => {
+          progressFillEl.style.transform = v;
+        });
+      }
+      if (topbarEl) {
+        topbarEl.classList.toggle('is-stuck', scrollTop > 8);
+      }
+
+      // 2. Split Hero Foreground Copy & 3D Wall Scroll Parallax
+      if (heroStageEl) {
+        const heroH = Math.max(1, heroStageEl.offsetHeight);
+        if (scrollTop <= heroH * 1.15) {
+          const heroP = clamp01(scrollTop / (heroH * 0.88));
+          if (heroCopyEl) {
+            const copyY = -heroP * 64;
+            const copySc = 1 - heroP * 0.036;
+            const copyOp = Math.max(0.14, 1 - heroP * 0.86);
+            write('hc-tf', `translate3d(0, ${copyY.toFixed(1)}px, 0) scale(${copySc.toFixed(4)})`, (v) => {
+              heroCopyEl.style.transform = v;
+            });
+            write('hc-op', copyOp.toFixed(3), (v) => {
+              heroCopyEl.style.opacity = v;
+            });
+          }
+          if (wallPlaneEl) {
+            write('wp-sy', `${(-heroP * 92).toFixed(1)}px`, (v) => {
+              wallPlaneEl.style.setProperty('--scroll-shift-y', v);
+            });
+            write('wp-ry', `${(-heroP * 7.5).toFixed(2)}deg`, (v) => {
+              wallPlaneEl.style.setProperty('--scroll-rot-y', v);
+            });
+            write('wp-rx', `${(heroP * 4.2).toFixed(2)}deg`, (v) => {
+              wallPlaneEl.style.setProperty('--scroll-rot-x', v);
+            });
+          }
+        }
       }
 
       const viewHeight = dialog.clientHeight || window.innerHeight;
@@ -693,11 +757,38 @@ export function initLinusGalleryModal(
     targetTiltY = 0;
     curTiltX = 0;
     curTiltY = 0;
+    const heroTitleEl = contentHost.querySelector<HTMLElement>('#lr-dialog-title');
+    if (heroTitleEl) splitHeadingForScroll(heroTitleEl);
+    pageScrollCleanup?.();
+    pageScrollCleanup = enhanceScrollTypographyAndSections(contentHost, dialog);
     bindWallInteractions();
     bindScrollStack();
+
+    // Streak-reveal hero KPIs immediately and module numbers as they scroll into view
     contentHost.querySelectorAll<HTMLElement>('.h51-kpi-card strong').forEach((el, kIdx) => {
       streakRevealElement(el, { axis: 'x', delayMs: 80 + kIdx * 55, durationMs: 420 });
     });
+
+    const modBadges = Array.from(contentHost.querySelectorAll<HTMLElement>('.h51-mod-num'));
+    if (modBadges.length) {
+      const modIo = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              modIo.unobserve(entry.target);
+              streakRevealElement(entry.target as HTMLElement, { axis: 'x', durationMs: 380 });
+            }
+          });
+        },
+        { root: dialog, threshold: 0.25 }
+      );
+      modBadges.forEach((b) => modIo.observe(b));
+      const prevCleanup = pageScrollCleanup;
+      pageScrollCleanup = () => {
+        modIo.disconnect();
+        prevCleanup?.();
+      };
+    }
   };
 
   const openProject = (idx: number) => {
@@ -713,6 +804,8 @@ export function initLinusGalleryModal(
     window.cancelAnimationFrame(tiltRaf);
     stackCleanup?.();
     stackCleanup = null;
+    pageScrollCleanup?.();
+    pageScrollCleanup = null;
     dialog.returnValue = '';
     void closeTopLayer(dialog);
   };
@@ -742,6 +835,8 @@ export function initLinusGalleryModal(
     window.cancelAnimationFrame(tiltRaf);
     stackCleanup?.();
     stackCleanup = null;
+    pageScrollCleanup?.();
+    pageScrollCleanup = null;
     dialog.returnValue = '';
   });
 
