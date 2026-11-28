@@ -646,12 +646,14 @@ function bootstrap() {
   let smoothAnimP = 0;
   let smoothStatsVis = 0;
   let smoothStoryP = 0;
+  let smoothServP = 0;
   let smoothResP = 0;
   let smoothProcP = 0;
   let targetHeroP = 0;
   let targetAnimP = 0;
   let targetStatsVis = 0;
   let targetStoryP = 0;
+  let targetServP = 0;
   let targetResP = 0;
   let targetProcP = 0;
   let initializedTargets = false;
@@ -685,6 +687,7 @@ function bootstrap() {
       }
 
       targetStoryP = getSectionProgress(storySection);
+      targetServP = reduced ? 0 : getSectionProgress(servicesSection);
 
       const resRect = resultsMetricsGrid.getBoundingClientRect();
       targetResP = clamp01((vh * 0.92 - resRect.top) / (vh * 0.55));
@@ -696,6 +699,7 @@ function bootstrap() {
         smoothAnimP = targetAnimP;
         smoothStatsVis = targetStatsVis;
         smoothStoryP = targetStoryP;
+        smoothServP = targetServP;
         smoothResP = targetResP;
         smoothProcP = targetProcP;
         initializedTargets = true;
@@ -728,6 +732,7 @@ function bootstrap() {
       Math.abs(targetAnimP - smoothAnimP) +
       Math.abs(targetStatsVis - smoothStatsVis) +
       Math.abs(targetStoryP - smoothStoryP) +
+      Math.abs(targetServP - smoothServP) +
       Math.abs(targetResP - smoothResP) +
       Math.abs(targetProcP - smoothProcP);
 
@@ -739,6 +744,7 @@ function bootstrap() {
     smoothAnimP += (targetAnimP - smoothAnimP) * damp;
     smoothStatsVis += (targetStatsVis - smoothStatsVis) * damp;
     smoothStoryP += (targetStoryP - smoothStoryP) * damp;
+    smoothServP += (targetServP - smoothServP) * damp;
     smoothResP += (targetResP - smoothResP) * damp;
     smoothProcP += (targetProcP - smoothProcP) * damp;
 
@@ -761,8 +767,8 @@ function bootstrap() {
     // C. 9-Beat Scroll Story
     storyCtrl.update(smoothStoryP);
 
-    // D. Services / Portfolio Stack
-    servicesCtrl.update();
+    // D. Services / Portfolio Scroll-Scrubbed FlexCarousel
+    servicesCtrl.update(smoothServP);
 
     // E. Results vertical odometer rollers
     updateResultsCounters(smoothResP);

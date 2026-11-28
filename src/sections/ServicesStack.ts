@@ -1,3 +1,5 @@
+import { mountFlexCarousel, type FlexCarouselController, type FlexCarouselItem } from '../three/FlexCarouselEngine';
+
 export interface PortfolioScreen {
   label: string;
   tag: string;
@@ -330,418 +332,160 @@ export const PORTFOLIO_PROJECTS: PortfolioProject[] = [
   },
 ];
 
-// Build a seamless 12-panel 3D cylinder ring matching ImageSlider3D geometry
-const RING_SLOTS = 12;
-// tan(180deg / 12) = tan(15deg) = 0.26794919
-const TAN_HALF_STEP = Math.tan(Math.PI / RING_SLOTS).toFixed(6);
-
-interface RingSlide {
-  screen: PortfolioScreen;
-  screenIdx: number;
-  slotIdx: number;
-}
-
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
-function buildCylinderSlides(screens: PortfolioScreen[]): RingSlide[] {
-  const out: RingSlide[] = [];
-  for (let i = 0; i < RING_SLOTS; i++) {
-    const screenIdx = i % screens.length;
-    out.push({
-      screen: screens[screenIdx],
-      screenIdx,
-      slotIdx: i,
-    });
-  }
-  return out;
+function toCarouselItems(project: PortfolioProject): FlexCarouselItem[] {
+  return project.screens.map((scr) => ({
+    src: scr.src,
+    fullSrc: scr.src,
+    alt: `${project.tabTitle} — ${scr.label}`,
+    title: scr.label,
+    subtitle: `${scr.tag} · ${project.tabTitle}`,
+  }));
 }
 
 export interface ServicesController {
-  update: () => void;
+  update: (progress: number) => void;
 }
 
 export function renderServicesHTML(): string {
+  const first = PORTFOLIO_PROJECTS[0];
+
   return `
     <section id="services" class="services-section" aria-labelledby="services-heading">
-      <div class="container">
-        <header class="portfolio-top-header">
-          <div>
-            <div class="eyebrow">PORTFOLIO &middot; PRODUCTION CASE STUDIES</div>
-            <h2 id="services-heading" class="section-title-xl">
-              Engineered &amp; shipped.
-            </h2>
-          </div>
-          <p class="section-lead portfolio-lead">
-            Select a system tab below to spin its 3D screen gallery, drag to orbit, or click any screen to inspect full resolution.
-          </p>
-        </header>
-
-        <div class="portfolio-showcase-shell portfolio-card">
-          <!-- Accessible Single-Row Project Tablist with CSS Anchor-Positioned Underline -->
-          <div class="portfolio-tablist" role="tablist" aria-label="Featured software case studies">
-            ${PORTFOLIO_PROJECTS.map(
-              (project, idx) => `
-              <button
-                type="button"
-                role="tab"
-                id="pf-tab-${idx}"
-                class="pf-tab-btn"
-                aria-selected="${idx === 0 ? 'true' : 'false'}"
-                tabindex="${idx === 0 ? '0' : '-1'}"
-                data-pf-tab="${idx}"
-              >
-                <span class="pf-tab-num">${project.tabNum}</span>
-                <span class="pf-tab-text">
-                  <span class="pf-tab-title">${project.tabTitle}</span>
-                  <span class="pf-tab-sub">${project.tabSub}</span>
+      <div class="portfolio-sticky-stage">
+        <!-- 1. Top Seamless Header + Project Switcher Tabs (same #f5f4ef background) -->
+        <div class="container pf-seamless-top">
+          <div class="pf-top-row">
+            <div class="pf-active-head">
+              <div class="pf-meta-row">
+                <span class="eyebrow" id="pf-active-code">${first.code}</span>
+                <span class="pf-status-pill">
+                  <span class="pf-live-dot" aria-hidden="true"></span>
+                  <span id="pf-active-status">${first.statusPill}</span>
                 </span>
-              </button>
+              </div>
+              <h2 id="services-heading" class="pf-seamless-title">${first.title}</h2>
+              <p class="pf-seamless-summary" id="pf-active-summary">${first.summary}</p>
+            </div>
+
+            <div class="pf-top-controls">
+              <!-- Accessible Single-Row Project Tablist with CSS Anchor-Positioned Underline -->
+              <div class="portfolio-tablist is-seamless" role="tablist" aria-label="Featured software case studies">
+                ${PORTFOLIO_PROJECTS.map(
+                  (project, idx) => `
+                  <button
+                    type="button"
+                    role="tab"
+                    id="pf-tab-${idx}"
+                    class="pf-tab-btn"
+                    aria-selected="${idx === 0 ? 'true' : 'false'}"
+                    tabindex="${idx === 0 ? '0' : '-1'}"
+                    data-pf-tab="${idx}"
+                  >
+                    <span class="pf-tab-num">${project.tabNum}</span>
+                    <span class="pf-tab-text">
+                      <span class="pf-tab-title">${project.tabTitle}</span>
+                      <span class="pf-tab-sub">${project.screens.length} screens</span>
+                    </span>
+                  </button>
+                `
+                ).join('')}
+              </div>
+
+              <div class="pf-action-pair">
+                <button
+                  type="button"
+                  class="pf-view-more-btn"
+                  id="pf-view-more-active"
+                  data-open-lr-project="0"
+                >
+                  View more
+                </button>
+                <button type="button" class="btn-yellow-pill pf-compact-cta" data-open-audit>
+                  <span id="pf-active-cta-label">${first.ctaLabel}</span> <span aria-hidden="true">&rarr;</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Full-Bleed Seamless WebGL2 FlexCarousel Stage (same #f5f4ef background, scrubs on scroll!) -->
+        <div class="pf-flex-carousel-bleed">
+          <div id="portfolio-flex-carousel" class="pf-flex-carousel-host"></div>
+        </div>
+
+        <!-- 3. Bottom Seamless Metrics & Scroll Progress Strip -->
+        <div class="container pf-seamless-bottom">
+          <div class="pf-inline-metrics" id="pf-active-metrics">
+            ${first.metrics
+              .map(
+                (m) => `
+              <div class="pf-inline-metric">
+                <strong>${m.value}</strong>
+                <span>${m.label}</span>
+              </div>
             `
-            ).join('')}
+              )
+              .join('')}
           </div>
 
-          <!-- Tab Panels Container (zero gap so hidden="until-found" panels take 0px) -->
-          <div class="portfolio-panels-host">
-            ${PORTFOLIO_PROJECTS.map((project, pIdx) => {
-              const ringSlides = buildCylinderSlides(project.screens);
-              const hiddenAttr = pIdx === 0 ? '' : 'hidden="until-found"';
-
-              return `
-              <div
-                role="tabpanel"
-                id="pf-panel-${pIdx}"
-                aria-labelledby="pf-tab-${pIdx}"
-                class="pf-tabpanel"
-                data-pf-panel="${pIdx}"
-                ${hiddenAttr}
-              >
-                <article class="pf-case-study">
-                  <!-- 1. Project Case-Study Top Summary + Key Metrics -->
-                  <div class="pf-case-header">
-                    <div class="pf-case-intro">
-                      <div class="pf-meta-row">
-                        <span class="service-code-pill">${project.code}</span>
-                        <span class="pf-status-pill"><span class="pf-live-dot" aria-hidden="true"></span>${project.statusPill}</span>
-                      </div>
-                      <h3 class="pf-case-title">${project.title}</h3>
-                      <p class="pf-case-summary">${project.summary}</p>
-                      <div class="pf-intro-actions">
-                        <button
-                          type="button"
-                          class="pf-view-more-btn"
-                          data-open-lr-project="${pIdx}"
-                        >
-                          View more
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="pf-metrics-grid" aria-label="Key project metrics">
-                      ${project.metrics
-                        .map(
-                          (m) => `
-                        <div class="pf-metric-box">
-                          <span class="pf-metric-val">${m.value}</span>
-                          <span class="pf-metric-lbl">${m.label}</span>
-                        </div>
-                      `
-                        )
-                        .join('')}
-                    </div>
-                  </div>
-
-                  <!-- 2. 3D Cylindrical ImageSlider3D Stage -->
-                  <div class="pf-slider3d-theater" data-slider-project="${pIdx}">
-                    <div class="pf-theater-hud">
-                      <div class="pf-hud-left">
-                        <span class="pf-hud-badge">360&deg; 3D GALLERY &middot; ${project.screens.length} SCREENS</span>
-                        <span class="pf-hud-hint">DRAG TO SPIN &middot; CLICK CARD TO EXPAND</span>
-                      </div>
-                      <div class="pf-hud-controls">
-                        <button type="button" class="pf-ctrl-btn" data-slider-prev="${pIdx}" aria-label="Rotate ${project.tabTitle} gallery left">&lsaquo;</button>
-                        <button type="button" class="pf-ctrl-btn pf-pause-btn" data-slider-toggle="${pIdx}" aria-pressed="false" aria-label="Pause 3D rotation">
-                          <span aria-hidden="true">&#10074;&#10074;</span>
-                        </button>
-                        <button type="button" class="pf-ctrl-btn" data-slider-next="${pIdx}" aria-label="Rotate ${project.tabTitle} gallery right">&rsaquo;</button>
-                      </div>
-                    </div>
-
-                    <!-- Exact ImageSlider3D Perspective + Edge Fade Mask Container -->
-                    <div
-                      class="slider3d-viewport"
-                      data-slider-viewport="${pIdx}"
-                      data-direction="${project.rotationDirection}"
-                      data-duration="${project.duration}"
-                      tabindex="0"
-                      role="region"
-                      aria-label="${project.tabTitle} 3D interactive screenshot carousel"
-                    >
-                      <div class="slider3d-ambient-glow theme-${project.posterTheme}" aria-hidden="true"></div>
-                      <div class="slider3d-rotor" data-slider-rotor="${pIdx}">
-                        ${ringSlides
-                          .map(({ screen, screenIdx, slotIdx }) => {
-                            const angleTurn = `${slotIdx} * (1turn / ${RING_SLOTS})`;
-                            const cardTransform = `rotateY(calc(${angleTurn})) translateZ(calc(-1 * (0.5 * var(--slider-card-w) + 0.52em) / ${TAN_HALF_STEP}))`;
-
-                            if (project.renderMode === 'poster') {
-                              return `
-                              <div
-                                class="slider3d-card is-poster-card"
-                                data-project-idx="${pIdx}"
-                                data-screen-idx="${screenIdx}"
-                                style="transform: ${cardTransform};"
-                              >
-                                <img
-                                  src="${screen.webp || screen.src}"
-                                  alt="${project.tabTitle} — ${screen.label}"
-                                  loading="lazy"
-                                  decoding="async"
-                                  draggable="false"
-                                />
-                                <div class="slider3d-card-hover-pill">
-                                  <span>${screen.label}</span>
-                                  <span aria-hidden="true">&#8599;</span>
-                                </div>
-                              </div>
-                            `;
-                            }
-
-                            return `
-                            <div
-                              class="slider3d-card is-framed-card theme-${project.posterTheme}"
-                              data-project-idx="${pIdx}"
-                              data-screen-idx="${screenIdx}"
-                              style="transform: ${cardTransform};"
-                            >
-                              <div class="sc-poster-top">
-                                <span class="sc-poster-brand">
-                                  <span class="sc-brand-dot" aria-hidden="true"></span>DEPLOY.
-                                </span>
-                                <span class="sc-poster-num">${pad2(screenIdx + 1)}</span>
-                              </div>
-
-                              <div class="sc-poster-headline">
-                                <strong>${screen.label}</strong>
-                                <span>${screen.tag}</span>
-                              </div>
-
-                              <div class="sc-device-stack">
-                                <div class="sc-device-back" aria-hidden="true"></div>
-                                <div class="sc-device-window">
-                                  <div class="sc-window-bar" aria-hidden="true">
-                                    <i></i><i></i><i></i>
-                                    <span>${project.id}.app</span>
-                                  </div>
-                                  <div class="sc-window-screen">
-                                    <img
-                                      src="${screen.webp || screen.src}"
-                                      alt="${project.tabTitle} — ${screen.label}"
-                                      loading="lazy"
-                                      decoding="async"
-                                      draggable="false"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div class="sc-poster-foot">
-                                <span>WE BUILD, YOU LEAD</span>
-                                <span aria-hidden="true">&#8599;</span>
-                              </div>
-                            </div>
-                          `;
-                          })
-                          .join('')}
-                      </div>
-                    </div>
-
-                    <!-- Quick-Jump Screen Selector Strip -->
-                    <div class="pf-screen-strip" aria-label="Jump to screen in ${project.tabTitle}">
-                      ${project.screens
-                        .map(
-                          (scr, sIdx) => `
-                        <button
-                          type="button"
-                          class="pf-screen-pill ${sIdx === 0 ? 'is-active' : ''}"
-                          data-jump-project="${pIdx}"
-                          data-jump-screen="${sIdx}"
-                        >
-                          <span class="pf-sp-idx">${pad2(sIdx + 1)}</span>
-                          <span>${scr.label}</span>
-                        </button>
-                      `
-                        )
-                        .join('')}
-                    </div>
-                  </div>
-
-                  <!-- 3. Detailed Case Study Breakdown: Challenge, Engineered Modules & Stack -->
-                  <div class="pf-details-grid">
-                    <div class="pf-detail-col pf-challenge-col">
-                      <div class="pf-col-eyebrow">01 &middot; THE CHALLENGE</div>
-                      <h4 class="pf-col-heading">What needed to change</h4>
-                      <p class="pf-challenge-copy">${project.challenge}</p>
-                      <div class="pf-challenge-actions">
-                        <button
-                          type="button"
-                          class="pf-view-more-btn"
-                          data-open-lr-project="${pIdx}"
-                        >
-                          View more
-                        </button>
-                        <button
-                          type="button"
-                          class="pf-inspect-all-btn"
-                          data-open-lightbox-project="${pIdx}"
-                        >
-                          Quick viewer (${project.screens.length}) &rarr;
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="pf-detail-col pf-features-col">
-                      <div class="pf-col-eyebrow">02 &middot; ENGINEERED ARCHITECTURE</div>
-                      <div class="pf-features-list">
-                        ${project.features
-                          .map(
-                            (f) => `
-                          <div class="pf-feature-item">
-                            <span class="pf-feat-icon" aria-hidden="true">&#10003;</span>
-                            <div>
-                              <strong>${f.title}</strong>
-                              <p>${f.detail}</p>
-                            </div>
-                          </div>
-                        `
-                          )
-                          .join('')}
-                      </div>
-                    </div>
-
-                    <div class="pf-detail-col pf-stack-col">
-                      <div class="pf-col-eyebrow">03 &middot; STACK &amp; DELIVERABLES</div>
-                      <h4 class="pf-col-heading">Production specs</h4>
-                      <ul class="pf-stack-pills">
-                        ${project.stack.map((item) => `<li>${item}</li>`).join('')}
-                      </ul>
-                      <div class="pf-cta-box">
-                        <button type="button" class="btn-yellow-pill pf-project-cta" data-open-audit>
-                          ${project.ctaLabel} <span aria-hidden="true">&rarr;</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              </div>
-            `;
-            }).join('')}
+          <div class="pf-scroll-tracker" aria-hidden="true">
+            <span class="pf-scroll-hint">SCROLL TO FLOW THROUGH ALL SCREENS &middot; CLICK IMAGE TO FOCUS</span>
+            <div class="pf-scroll-bar">
+              <span class="pf-scroll-bar-fill" id="pf-scroll-bar-fill"></span>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Full-Resolution Portfolio Lightbox with Prev / Next Screen Navigation -->
-      <dialog id="portfolio-lightbox" class="zeroth-dialog portfolio-lightbox" aria-label="Project screenshot preview">
-        <div class="lightbox-panel">
-          <div class="lightbox-header">
-            <div class="lightbox-meta">
-              <span id="lightbox-caption" class="lightbox-caption"></span>
-              <p id="lightbox-subcaption" class="lightbox-subcaption"></p>
-            </div>
-            <div class="lightbox-actions">
-              <button type="button" class="pf-ctrl-btn" id="lightbox-prev" aria-label="Previous screenshot">&lsaquo;</button>
-              <button type="button" class="pf-ctrl-btn" id="lightbox-next" aria-label="Next screenshot">&rsaquo;</button>
-              <button type="button" class="dialog-close" id="lightbox-close" aria-label="Close preview">&times;</button>
-            </div>
-          </div>
-          <img id="lightbox-img" class="lightbox-img" src="" alt="" />
-        </div>
-      </dialog>
     </section>
   `;
 }
 
-interface SliderInstanceState {
-  pIdx: number;
-  viewport: HTMLElement;
-  rotor: HTMLElement;
-  angleDeg: number;
-  velDegPerSec: number;
-  baseSpeedDegPerSec: number;
-  directionSign: number;
-  duration: number;
-  dragging: boolean;
-  hovered: boolean;
-  paused: boolean;
-  snapTargetDeg: number | null;
-  holdTimer: number;
-  pills: HTMLButtonElement[];
-}
-
 export function initServicesStack(section: HTMLElement): ServicesController {
   const tabs = Array.from(section.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-  const panels = Array.from(section.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
+  const carouselHost = section.querySelector<HTMLElement>('#portfolio-flex-carousel');
 
-  const lightbox = section.querySelector<HTMLDialogElement>('#portfolio-lightbox');
-  const lightboxImg = section.querySelector<HTMLImageElement>('#lightbox-img');
-  const lightboxCaption = section.querySelector<HTMLElement>('#lightbox-caption');
-  const lightboxSubcaption = section.querySelector<HTMLElement>('#lightbox-subcaption');
-  const lightboxClose = section.querySelector<HTMLButtonElement>('#lightbox-close');
-  const lightboxPrev = section.querySelector<HTMLButtonElement>('#lightbox-prev');
-  const lightboxNext = section.querySelector<HTMLButtonElement>('#lightbox-next');
+  const codeEl = section.querySelector<HTMLElement>('#pf-active-code');
+  const statusEl = section.querySelector<HTMLElement>('#pf-active-status');
+  const titleEl = section.querySelector<HTMLElement>('#services-heading');
+  const summaryEl = section.querySelector<HTMLElement>('#pf-active-summary');
+  const viewMoreBtn = section.querySelector<HTMLButtonElement>('#pf-view-more-active');
+  const ctaLabelEl = section.querySelector<HTMLElement>('#pf-active-cta-label');
+  const metricsHost = section.querySelector<HTMLElement>('#pf-active-metrics');
+  const scrollBarFill = section.querySelector<HTMLElement>('#pf-scroll-bar-fill');
 
-  let activeTabIdx = 0;
-  let lbProjectIdx = 0;
-  let lbScreenIdx = 0;
+  let activeIdx = 0;
+  let latestScrollP = 0;
+  let flexCtrl: FlexCarouselController | null = null;
 
-  const openLightbox = (pIdx: number, sIdx: number) => {
-    const project = PORTFOLIO_PROJECTS[pIdx];
-    if (!project || !lightbox || !lightboxImg || !lightboxCaption) return;
-    const count = project.screens.length;
-    const normIdx = ((sIdx % count) + count) % count;
-    const screen = project.screens[normIdx];
-    lbProjectIdx = pIdx;
-    lbScreenIdx = normIdx;
-
-    lightboxImg.src = screen.src;
-    lightboxImg.alt = `${project.tabTitle} — ${screen.label}`;
-    lightboxCaption.textContent = `${project.tabTitle} · ${pad2(normIdx + 1)} / ${pad2(count)} — ${screen.label}`;
-    if (lightboxSubcaption) {
-      lightboxSubcaption.textContent = screen.caption;
-    }
-    if (!lightbox.open) {
-      lightbox.showModal();
-    }
-  };
-
-  lightboxClose?.addEventListener('click', () => lightbox?.close());
-  lightboxPrev?.addEventListener('click', () => openLightbox(lbProjectIdx, lbScreenIdx - 1));
-  lightboxNext?.addEventListener('click', () => openLightbox(lbProjectIdx, lbScreenIdx + 1));
-  lightbox?.addEventListener('click', (e) => {
-    if (e.target === lightbox) lightbox.close();
-  });
-  lightbox?.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      openLightbox(lbProjectIdx, lbScreenIdx - 1);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      openLightbox(lbProjectIdx, lbScreenIdx + 1);
-    }
-  });
-
-  section.querySelectorAll<HTMLButtonElement>('[data-open-lightbox-project]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const pIdx = Number(btn.dataset.openLightboxProject || '0');
-      openLightbox(pIdx, 0);
+  if (carouselHost) {
+    flexCtrl = mountFlexCarousel(carouselHost, {
+      items: toCarouselItems(PORTFOLIO_PROJECTS[0]),
+      cardHeight: 0.56,
+      gap: 12,
+      squeeze: 0.2,
+      focusOnClick: true,
+      captions: true,
+      fit: 'natural',
+      radius: 0,
+      lensWidth: 0.74,
+      lensHeight: 1.18,
+      tilt: 62,
+      roundness: 1,
+      bend: 0.34,
+      reach: 0.38,
+      curl: 'twist',
+      dispersion: 0.45,
+      liquid: 0,
+      followCursor: false,
     });
-  });
+  }
 
-  // Tab switching (selection follows focus + hidden="until-found" + beforematch sync)
   const selectTab = (nextIdx: number, moveFocus = false) => {
-    const clamped = ((nextIdx % tabs.length) + tabs.length) % tabs.length;
-    activeTabIdx = clamped;
+    const count = PORTFOLIO_PROJECTS.length;
+    const clamped = ((nextIdx % count) + count) % count;
+    if (clamped === activeIdx && !moveFocus) return;
+    activeIdx = clamped;
+    const project = PORTFOLIO_PROJECTS[clamped];
 
     tabs.forEach((tab, i) => {
       const isSelected = i === clamped;
@@ -757,13 +501,26 @@ export function initServicesStack(section: HTMLElement): ServicesController {
       }
     });
 
-    panels.forEach((panel, i) => {
-      if (i === clamped) {
-        panel.removeAttribute('hidden');
-      } else {
-        panel.setAttribute('hidden', 'until-found');
-      }
-    });
+    if (codeEl) codeEl.textContent = project.code;
+    if (statusEl) statusEl.textContent = project.statusPill;
+    if (titleEl) titleEl.textContent = project.title;
+    if (summaryEl) summaryEl.textContent = project.summary;
+    if (viewMoreBtn) viewMoreBtn.dataset.openLrProject = String(clamped);
+    if (ctaLabelEl) ctaLabelEl.textContent = project.ctaLabel;
+    if (metricsHost) {
+      metricsHost.innerHTML = project.metrics
+        .map(
+          (m) => `
+          <div class="pf-inline-metric">
+            <strong>${m.value}</strong>
+            <span>${m.label}</span>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    flexCtrl?.setItems(toCarouselItems(project), latestScrollP);
   };
 
   tabs.forEach((tab, idx) => {
@@ -785,254 +542,13 @@ export function initServicesStack(section: HTMLElement): ServicesController {
     });
   });
 
-  panels.forEach((panel, idx) => {
-    panel.addEventListener('beforematch', () => {
-      selectTab(idx, false);
-    });
-  });
-
-  // Build 3D Cylinder Slider controllers per tab
-  const reducedMq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const sliders: SliderInstanceState[] = [];
-
-  PORTFOLIO_PROJECTS.forEach((project, pIdx) => {
-    const viewport = section.querySelector<HTMLElement>(`[data-slider-viewport="${pIdx}"]`);
-    const rotor = section.querySelector<HTMLElement>(`[data-slider-rotor="${pIdx}"]`);
-    if (!viewport || !rotor) return;
-
-    const pills = Array.from(
-      section.querySelectorAll<HTMLButtonElement>(`[data-jump-project="${pIdx}"]`)
-    );
-    const directionSign = project.rotationDirection === 'left' ? 1 : -1;
-    const duration = project.duration || 34;
-    const computeBaseSpeed = () => {
-      const effDuration = reducedMq.matches ? duration * 4 : duration;
-      return (360 / effDuration) * directionSign;
-    };
-
-    const state: SliderInstanceState = {
-      pIdx,
-      viewport,
-      rotor,
-      angleDeg: 0,
-      velDegPerSec: 0,
-      baseSpeedDegPerSec: computeBaseSpeed(),
-      directionSign,
-      duration,
-      dragging: false,
-      hovered: false,
-      paused: false,
-      snapTargetDeg: null,
-      holdTimer: 0,
-      pills,
-    };
-
-    rotor.style.transform = 'rotateY(0deg)';
-
-    // Hover slows cruise gently
-    viewport.addEventListener('pointerenter', () => {
-      state.hovered = true;
-    });
-    viewport.addEventListener('pointerleave', () => {
-      state.hovered = false;
-    });
-
-    // Drag-to-spin + click-to-open-lightbox
-    let pointerId: number | null = null;
-    let startX = 0;
-    let startY = 0;
-    let lastX = 0;
-    let lastT = 0;
-    let downCard: HTMLElement | null = null;
-
-    viewport.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 && e.pointerType === 'mouse') return;
-      pointerId = e.pointerId;
-      state.dragging = true;
-      state.snapTargetDeg = null;
-      state.holdTimer = 0;
-      state.velDegPerSec = 0;
-      startX = e.clientX;
-      startY = e.clientY;
-      lastX = e.clientX;
-      lastT = performance.now();
-      downCard = (e.target as HTMLElement | null)?.closest<HTMLElement>('.slider3d-card') || null;
-      viewport.classList.add('is-dragging');
-      try {
-        viewport.setPointerCapture(e.pointerId);
-      } catch {
-        // ignore
-      }
-    });
-
-    viewport.addEventListener('pointermove', (e) => {
-      if (!state.dragging || e.pointerId !== pointerId) return;
-      const now = performance.now();
-      const dtMs = Math.max(4, now - lastT);
-      const dx = e.clientX - lastX;
-      lastX = e.clientX;
-      lastT = now;
-
-      // In CSS 3D concave back-wall (z = -R), x' = -R * sin(angle), so dragging right (dx > 0) decreases angle
-      const deltaDeg = -dx * 0.22;
-      state.angleDeg += deltaDeg;
-      state.velDegPerSec = (deltaDeg / dtMs) * 1000;
-      state.rotor.style.transform = `rotateY(${state.angleDeg.toFixed(3)}deg)`;
-    });
-
-    const finishDrag = (e: PointerEvent) => {
-      if (!state.dragging || e.pointerId !== pointerId) return;
-      state.dragging = false;
-      viewport.classList.remove('is-dragging');
-      try {
-        viewport.releasePointerCapture(e.pointerId);
-      } catch {
-        // ignore
-      }
-      pointerId = null;
-
-      const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
-      if (dist < 6 && downCard) {
-        const sIdx = Number(downCard.dataset.screenIdx || '0');
-        openLightbox(pIdx, sIdx);
-      }
-      downCard = null;
-    };
-
-    viewport.addEventListener('pointerup', finishDrag);
-    viewport.addEventListener('pointercancel', finishDrag);
-
-    // Keyboard rotation on focused viewport
-    viewport.addEventListener('keydown', (e) => {
-      const stepDeg = 360 / RING_SLOTS;
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        state.snapTargetDeg = (state.snapTargetDeg ?? state.angleDeg) - stepDeg;
-        state.holdTimer = 1.6;
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        state.snapTargetDeg = (state.snapTargetDeg ?? state.angleDeg) + stepDeg;
-        state.holdTimer = 1.6;
-      }
-    });
-
-    // HUD Prev / Next / Pause controls
-    const prevBtn = section.querySelector<HTMLButtonElement>(`[data-slider-prev="${pIdx}"]`);
-    const nextBtn = section.querySelector<HTMLButtonElement>(`[data-slider-next="${pIdx}"]`);
-    const toggleBtn = section.querySelector<HTMLButtonElement>(`[data-slider-toggle="${pIdx}"]`);
-    const stepDeg = 360 / RING_SLOTS;
-
-    prevBtn?.addEventListener('click', () => {
-      const base = state.snapTargetDeg ?? Math.round(state.angleDeg / stepDeg) * stepDeg;
-      state.snapTargetDeg = base - stepDeg;
-      state.holdTimer = 1.8;
-    });
-
-    nextBtn?.addEventListener('click', () => {
-      const base = state.snapTargetDeg ?? Math.round(state.angleDeg / stepDeg) * stepDeg;
-      state.snapTargetDeg = base + stepDeg;
-      state.holdTimer = 1.8;
-    });
-
-    toggleBtn?.addEventListener('click', () => {
-      state.paused = !state.paused;
-      toggleBtn.setAttribute('aria-pressed', String(state.paused));
-      toggleBtn.setAttribute('aria-label', state.paused ? 'Resume 3D rotation' : 'Pause 3D rotation');
-      toggleBtn.innerHTML = state.paused
-        ? '<span aria-hidden="true">&#9654;</span>'
-        : '<span aria-hidden="true">&#10074;&#10074;</span>';
-    });
-
-    // Screen Quick-Jump Pills: rotate cylinder smoothly to center that exact screen
-    pills.forEach((pill) => {
-      pill.addEventListener('click', () => {
-        const sIdx = Number(pill.dataset.jumpScreen || '0');
-        // Slot sIdx sits at slotAngle = sIdx * stepDeg; centered when rotorAngle + slotAngle ≡ 0 (mod 360)
-        const targetMod = -sIdx * stepDeg;
-        const delta = ((((targetMod - state.angleDeg) % 360) + 540) % 360) - 180;
-        state.snapTargetDeg = state.angleDeg + delta;
-        state.velDegPerSec = 0;
-        state.holdTimer = 2.4;
-        pills.forEach((p, idx) => p.classList.toggle('is-active', idx === sIdx));
-      });
-    });
-
-    sliders.push(state);
-  });
-
-  reducedMq.addEventListener('change', () => {
-    sliders.forEach((s) => {
-      const effDuration = reducedMq.matches ? s.duration * 4 : s.duration;
-      s.baseSpeedDegPerSec = (360 / effDuration) * s.directionSign;
-    });
-  });
-
-  // Pause rAF automatically when #services is >200px outside viewport (matching ImageSlider3D useInView margin="200px")
-  let sectionInView = false;
-  let rafId = 0;
-  let lastFrameTime = performance.now();
-
-  const tick = (now: number) => {
-    if (!sectionInView) {
-      rafId = 0;
-      return;
-    }
-    const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
-    lastFrameTime = now;
-
-    const active = sliders[activeTabIdx];
-    if (active && !active.dragging) {
-      if (active.snapTargetDeg !== null) {
-        const diff = active.snapTargetDeg - active.angleDeg;
-        active.angleDeg += diff * Math.min(1, dt * 8.5);
-        if (Math.abs(diff) < 0.15) {
-          active.angleDeg = active.snapTargetDeg;
-          active.snapTargetDeg = null;
-        }
-      } else if (active.holdTimer > 0) {
-        active.holdTimer = Math.max(0, active.holdTimer - dt);
-      } else {
-        // Decay manual throw momentum smoothly into continuous 360° cruise
-        const cruise = active.paused
-          ? 0
-          : active.hovered
-            ? active.baseSpeedDegPerSec * 0.28
-            : active.baseSpeedDegPerSec;
-        active.velDegPerSec *= Math.exp(-dt * 4.2);
-        const speed = Math.abs(active.velDegPerSec) > 0.4 ? active.velDegPerSec + cruise * 0.25 : cruise;
-        active.angleDeg += speed * dt;
-      }
-
-      active.rotor.style.transform = `rotateY(${active.angleDeg.toFixed(3)}deg)`;
-
-      // Highlight whichever unique screen is currently closest to center (angle = 0 on back wall)
-      const stepDeg = 360 / RING_SLOTS;
-      const rawSlot = Math.round(-active.angleDeg / stepDeg);
-      const normSlot = ((rawSlot % RING_SLOTS) + RING_SLOTS) % RING_SLOTS;
-      const screenCount = PORTFOLIO_PROJECTS[active.pIdx].screens.length;
-      const activeScreenIdx = normSlot % screenCount;
-      if (active.snapTargetDeg === null) {
-        active.pills.forEach((p, idx) => p.classList.toggle('is-active', idx === activeScreenIdx));
-      }
-    }
-
-    rafId = window.requestAnimationFrame(tick);
-  };
-
-  const viewIo = new IntersectionObserver(
-    (entries) => {
-      const vis = entries[0]?.isIntersecting ?? false;
-      sectionInView = vis;
-      if (vis && !rafId) {
-        lastFrameTime = performance.now();
-        rafId = window.requestAnimationFrame(tick);
-      }
-    },
-    { rootMargin: '200px 0px 200px 0px', threshold: 0 }
-  );
-  viewIo.observe(section);
-
   return {
-    update: () => {},
+    update(progress: number) {
+      latestScrollP = Math.max(0, Math.min(1, progress));
+      if (scrollBarFill) {
+        scrollBarFill.style.transform = `scaleX(${latestScrollP.toFixed(4)})`;
+      }
+      flexCtrl?.setScrollProgress(latestScrollP);
+    },
   };
 }
