@@ -38,21 +38,38 @@ function playWelcome(overlay: HTMLElement) {
     { offset: 0.11, transform: pose(0, 8, -11, 0.9) },
   ];
 
+  const spin = (start: number, length: number) => {
+    animate(face, [
+      { backgroundPosition: '0% center' },
+      { backgroundPosition: '100% center' },
+    ], { delay: start, duration: length, easing: 'steps(15, end)', fill: 'none' });
+    animate(fallback, [
+      { transform: 'rotateY(0deg)' },
+      { transform: 'rotateY(360deg)' },
+    ], { delay: start, duration: length, fill: 'none' });
+  };
+
+  overlay.hidden = false;
+
   const hopStart = 440;
   const hopDuration = 364;
   letters.slice(0, -1).forEach((letter, i) => {
     const start = hopStart + i * hopDuration;
     const landing = start + hopDuration;
     const x = 116 + i * 100;
+    const before = 1 + i * 0.09;
+    const after = before + 0.09;
+    spin(start + 20, hopDuration - 42);
     frames.push(
-      { offset: (start + hopDuration * 0.49) / duration, transform: pose(x - 48, -87, -12), easing: 'ease-in' },
-      { offset: landing / duration, transform: pose(x, -30, 10, 0.92), easing: 'ease-out' },
+      { offset: (start + hopDuration * 0.49) / duration, transform: pose(x - 48, -87, -12, before), easing: 'ease-in' },
+      { offset: landing / duration, transform: pose(x, -30, 10, before * 0.94), easing: 'ease-out' },
+      { offset: (landing + 58) / duration, transform: pose(x, -34, 3, after), easing: 'ease-out' },
     );
     animate(letter, [
       { transform: 'translate3d(0, 0, 0)', opacity: 1 },
       { offset: 0.18, transform: 'translate3d(0, 15%, 0) rotateZ(5deg)', opacity: 1 },
       { transform: `translate3d(${i % 2 ? 10 : -10}%, 150%, 0) rotateZ(${i % 2 ? 24 : -24}deg)`, opacity: 0 },
-    ], { delay: landing - 34, duration: 480, easing: 'cubic-bezier(.42, 0, .85, 1)' });
+    ], { delay: landing, duration: 445, easing: 'cubic-bezier(.42, 0, .85, 1)' });
   });
 
   animate(letters[letters.length - 1], [
@@ -61,10 +78,17 @@ function playWelcome(overlay: HTMLElement) {
   ], { delay: 2700, duration: 410, easing: 'ease-in' });
 
   frames.push(
-    { offset: 0.765, transform: pose(388, -40, -9, 1.12), easing: 'cubic-bezier(.5, 0, .35, 1)' },
-    { offset: 0.90, transform: pose(328, -6, 14, 1.65) },
-    { offset: 1, transform: pose(328, -6, 24, 2.5) },
+    { offset: 0.76, transform: pose(400, -31, -13, 1.54), easing: 'cubic-bezier(.45, 0, .34, 1)' },
+    { offset: 0.855, transform: pose(328, -8, 10, 2.28), easing: 'ease-in' },
+    { offset: 0.94, transform: pose(328, -8, 22, 3.45) },
+    { offset: 1, transform: pose(328, -8, 28, 4.1) },
   );
+
+  let spinStart = 2740;
+  for (const length of [260, 205, 155, 130, 110, 95]) {
+    spin(spinStart, length);
+    spinStart += length;
+  }
 
   const sprite = new Image();
   sprite.onload = () => {
@@ -72,20 +96,16 @@ function playWelcome(overlay: HTMLElement) {
   };
   sprite.src = new URL('deploy-welcome-turn.webp', document.baseURI).href;
 
-  overlay.hidden = false;
   animate(mark, frames, { duration });
-  animate(face, [
-    { backgroundPosition: '0% center' },
-    { backgroundPosition: '100% center' },
-  ], { delay: 2820, duration: 345, iterations: 2, easing: 'steps(15, end)' });
-  animate(fallback, [
-    { transform: 'rotateY(0deg)' },
-    { transform: 'rotateY(720deg)' },
-  ], { delay: 2820, duration: 690, easing: 'ease-in-out' });
+  animate(mark, [{ opacity: 1 }, { opacity: 0 }], {
+    delay: 3500,
+    duration: 420,
+    easing: 'ease-in',
+  });
 
   const reveal = animate(overlay, [
     { opacity: 1 },
-    { offset: 0.78, opacity: 1, easing: 'cubic-bezier(.25, .65, .35, 1)' },
+    { offset: 0.81, opacity: 1, easing: 'cubic-bezier(.42, 0, .3, 1)' },
     { opacity: 0 },
   ], { duration });
 
