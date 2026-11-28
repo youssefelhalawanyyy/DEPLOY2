@@ -5,6 +5,7 @@ import { renderScrollStoryHTML, initScrollStory } from './sections/ScrollStory';
 import { renderServicesHTML, initServicesStack } from './sections/ServicesStack';
 import { renderProcessHTML, initProcessDiagram } from './sections/ProcessDiagram';
 import { renderModalsHTML, initModalsAndForms } from './sections/ModalsAndForms';
+import { renderLinusGalleryModalHTML, initLinusGalleryModal } from './sections/LinusGalleryModal';
 import { mountGridSignalCanvas, initInteractiveSpotlightCards } from './effects/VisualAnimations';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -378,6 +379,7 @@ function buildAppHTML(): string {
     </footer>
 
     ${renderModalsHTML()}
+    ${renderLinusGalleryModalHTML()}
   `;
 }
 
@@ -484,6 +486,7 @@ function bootstrap() {
   document.querySelectorAll<HTMLElement>('[data-open-audit]').forEach((el) => {
     el.addEventListener('click', () => modals.openAudit(el));
   });
+  initLinusGalleryModal((triggerEl) => modals.openAudit(triggerEl));
   document.querySelectorAll<HTMLElement>('[data-open-film]').forEach((el) => {
     el.addEventListener('click', () => modals.openFilm(el));
   });

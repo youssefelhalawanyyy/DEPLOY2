@@ -427,6 +427,15 @@ export function renderServicesHTML(): string {
                       </div>
                       <h3 class="pf-case-title">${project.title}</h3>
                       <p class="pf-case-summary">${project.summary}</p>
+                      <div class="pf-intro-actions">
+                        <button
+                          type="button"
+                          class="pf-view-more-btn"
+                          data-open-lr-project="${pIdx}"
+                        >
+                          View more
+                        </button>
+                      </div>
                     </div>
 
                     <div class="pf-metrics-grid" aria-label="Key project metrics">
@@ -574,13 +583,22 @@ export function renderServicesHTML(): string {
                       <div class="pf-col-eyebrow">01 &middot; THE CHALLENGE</div>
                       <h4 class="pf-col-heading">What needed to change</h4>
                       <p class="pf-challenge-copy">${project.challenge}</p>
-                      <button
-                        type="button"
-                        class="pf-inspect-all-btn"
-                        data-open-lightbox-project="${pIdx}"
-                      >
-                        Open full-res screen viewer (${project.screens.length}) &rarr;
-                      </button>
+                      <div class="pf-challenge-actions">
+                        <button
+                          type="button"
+                          class="pf-view-more-btn"
+                          data-open-lr-project="${pIdx}"
+                        >
+                          View more
+                        </button>
+                        <button
+                          type="button"
+                          class="pf-inspect-all-btn"
+                          data-open-lightbox-project="${pIdx}"
+                        >
+                          Quick viewer (${project.screens.length}) &rarr;
+                        </button>
+                      </div>
                     </div>
 
                     <div class="pf-detail-col pf-features-col">
