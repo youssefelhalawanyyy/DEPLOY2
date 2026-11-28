@@ -283,44 +283,70 @@ function buildHero51ProjectMarkup(projectIdx: number, wallPaused: boolean): stri
           </div>
         </div>
 
-        <!-- Complete Annotated Screen Exhibition Grid -->
-        <div class="h51-screens-block">
-          <div class="h51-section-head">
-            <span class="h51-sec-kicker">04 &middot; COMPLETE EXHIBITION (${project.screens.length} PLATES)</span>
-            <h2>Every production screen, annotated.</h2>
+        <!-- Section 04: Scroll Stack Annotated Screen Exhibition -->
+        <div class="h51-screens-block" id="h51-exhibition-block">
+          <div class="h51-section-head h51-exhibition-head">
+            <div>
+              <span class="h51-sec-kicker">04 &middot; COMPLETE EXHIBITION (${project.screens.length} PLATES)</span>
+              <h2>Every production screen, annotated.</h2>
+            </div>
+            <div class="h51-stack-counter-pill" aria-hidden="true">
+              <span>STACKING PLATE</span>
+              <strong><span id="h51-stack-active-num" data-spd-value="01">01</span> / ${pad2(project.screens.length)}</strong>
+            </div>
           </div>
 
-          <div class="h51-plates-grid ${project.renderMode === 'poster' ? 'is-poster-grid' : ''}">
-            ${project.screens
-              .map(
-                (scr, sIdx) => `
-              <article class="h51-plate-card">
-                <button
-                  type="button"
-                  class="h51-plate-media"
-                  data-print-idx="${sIdx}"
-                  aria-label="Zoom ${scr.label}"
+          <div class="h51-scroll-stack" id="h51-scroll-stack">
+            <div class="h51-scroll-stack__inner" id="h51-scroll-stack-inner">
+              ${project.screens
+                .map(
+                  (scr, sIdx) => `
+                ${sIdx > 0 ? '<div class="h51-stack-spacer" aria-hidden="true"></div>' : ''}
+                <div
+                  class="h51-stack-slot"
+                  data-stack-slot="${sIdx}"
+                  style="z-index: ${sIdx + 1};"
                 >
-                  <img
-                    src="${scr.src}"
-                    alt="${project.tabTitle} — ${scr.label}"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <span class="h51-plate-zoom-chip">Click to zoom &#8599;</span>
-                </button>
-                <div class="h51-plate-meta">
-                  <div class="h51-plate-meta-top">
-                    <span class="h51-plate-idx">PLATE ${pad2(sIdx + 1)}</span>
-                    <span class="h51-plate-tag">${scr.tag}</span>
-                  </div>
-                  <h3>${scr.label}</h3>
-                  <p>${scr.caption}</p>
+                  <article class="h51-stack-card">
+                    <header class="h51-stack-bar">
+                      <div class="h51-stack-bar-left">
+                        <span class="h51-stack-plate-pill">PLATE ${pad2(sIdx + 1)}</span>
+                        <h3 class="h51-stack-title">${scr.label}</h3>
+                      </div>
+                      <div class="h51-stack-bar-right">
+                        <span class="h51-stack-tag">${scr.tag}</span>
+                        <span class="h51-stack-fraction">${pad2(sIdx + 1)} / ${pad2(project.screens.length)}</span>
+                      </div>
+                    </header>
+
+                    <button
+                      type="button"
+                      class="h51-stack-media"
+                      data-print-idx="${sIdx}"
+                      aria-label="Zoom Plate ${pad2(sIdx + 1)}: ${scr.label}"
+                    >
+                      <img
+                        src="${scr.src}"
+                        alt="${project.tabTitle} — ${scr.label}"
+                        loading="${sIdx < 2 ? 'eager' : 'lazy'}"
+                        decoding="async"
+                        draggable="false"
+                      />
+                      <span class="h51-plate-zoom-chip">Click to zoom &#8599;</span>
+                    </button>
+
+                    <footer class="h51-stack-foot">
+                      <p>${scr.caption}</p>
+                    </footer>
+
+                    <span class="h51-stack-card__shade" aria-hidden="true"></span>
+                  </article>
                 </div>
-              </article>
-            `
-              )
-              .join('')}
+              `
+                )
+                .join('')}
+              <div class="h51-stack-end" aria-hidden="true"></div>
+            </div>
           </div>
         </div>
 
@@ -364,6 +390,7 @@ export function initLinusGalleryModal(
   let currentZoomIdx = 0;
   let wallPaused = false;
   let tiltRaf = 0;
+  let stackCleanup: (() => void) | null = null;
   let targetTiltX = 0;
   let targetTiltY = 0;
   let curTiltX = 0;
@@ -480,6 +507,181 @@ export function initLinusGalleryModal(
     tiltRaf = window.requestAnimationFrame(stepTilt);
   };
 
+  const bindScrollStack = () => {
+    stackCleanup?.();
+    stackCleanup = null;
+
+    const stackRoot = contentHost.querySelector<HTMLElement>('#h51-scroll-stack');
+    const stackInner = contentHost.querySelector<HTMLElement>('#h51-scroll-stack-inner');
+    const activeNumEl = contentHost.querySelector<HTMLElement>('#h51-stack-active-num');
+    if (!stackRoot || !stackInner) return;
+
+    const slots = Array.from(stackInner.querySelectorAll<HTMLElement>('[data-stack-slot]'));
+    if (!slots.length) return;
+
+    const cards = slots.map((s) => s.querySelector<HTMLElement>('.h51-stack-card'));
+    const shades = slots.map((s) => s.querySelector<HTMLElement>('.h51-stack-card__shade'));
+    const cache = new Map<string, string>();
+    const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let rafId = 0;
+    let lastActivePlate = 0;
+
+    const write = (key: string, val: string, apply: (v: string) => void) => {
+      if (cache.get(key) === val) return;
+      cache.set(key, val);
+      apply(val);
+    };
+
+    const clamp = (min: number, v: number, max: number) => Math.max(min, Math.min(max, v));
+    const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+    const updateStack = () => {
+      rafId = 0;
+      if (!dialog.open) return;
+
+      if (motionMq.matches) {
+        cards.forEach((card, i) => {
+          if (!card) return;
+          write(`tf-${i}`, '', (v) => { card.style.transform = v; });
+          write(`op-${i}`, '1', (v) => { card.style.opacity = v; });
+          write(`pe-${i}`, '', (v) => { card.style.pointerEvents = v; });
+          const shade = shades[i];
+          if (shade) write(`dm-${i}`, '0', (v) => { shade.style.opacity = v; });
+        });
+        return;
+      }
+
+      const viewHeight = dialog.clientHeight || window.innerHeight;
+      const viewTop = dialog.getBoundingClientRect().top + dialog.clientTop;
+      const isMobile = window.innerWidth <= 720;
+      const stackTop = Math.round(clamp(isMobile ? 86 : 108, viewHeight * 0.135, 138));
+      write('stackTop', `${stackTop}px`, (v) => {
+        stackRoot.style.setProperty('--stack-top', v);
+      });
+
+      const pinY = viewTop + stackTop;
+      const heights = slots.map((slot) => slot.offsetHeight);
+      const tops = slots.map((slot) => slot.getBoundingClientRect().top);
+
+      // Accumulate exact stack depth as each subsequent card slides up over the pinned deck
+      const depths = slots.map(() => 0);
+      let frontIdx = 0;
+      for (let j = 1; j < slots.length; j++) {
+        const prevH = heights[j - 1];
+        const span = Math.max(1, prevH * 0.9);
+        const start = pinY + prevH * 0.95;
+        const cover = clamp01((start - tops[j]) / span);
+        if (cover > 0.45) frontIdx = j;
+        for (let i = 0; i < j; i++) {
+          depths[i] += cover;
+        }
+      }
+
+      if (frontIdx !== lastActivePlate) {
+        const dir: 1 | -1 = frontIdx > lastActivePlate ? 1 : -1;
+        lastActivePlate = frontIdx;
+        morphSpeedingText(activeNumEl, pad2(frontIdx + 1), { axis: 'y', direction: dir, durationMs: 300 });
+      }
+
+      const peekStep = isMobile ? 14 : 22;
+      const itemScale = 0.046;
+      const baseScale = 0.8;
+      const dimStep = 0.16;
+
+      slots.forEach((_, i) => {
+        const card = cards[i];
+        const shade = shades[i];
+        if (!card) return;
+
+        const depth = depths[i];
+        if (depth < 0.001) {
+          write(`tf-${i}`, '', (v) => { card.style.transform = v; });
+          write(`op-${i}`, '1', (v) => { card.style.opacity = v; });
+          write(`pe-${i}`, '', (v) => { card.style.pointerEvents = v; });
+          if (shade) write(`dm-${i}`, '0', (v) => { shade.style.opacity = v; });
+          return;
+        }
+
+        const clampedPeekDepth = Math.min(depth, 3.6);
+        const peekY = -clampedPeekDepth * peekStep;
+        const scale = Math.max(baseScale, 1 - depth * itemScale);
+        const tilt = -Math.min(depth, 1.35) * 2.1;
+        const dim = 1 - Math.pow(1 - dimStep, depth);
+
+        // Smoothly fade buried cards away once 2+ newer cards stack over them
+        const fadeProgress = clamp01((depth - 2.15) / 1.45);
+        const smoothFade = 1 - fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+
+        const tf = `perspective(1200px) translate3d(0, ${peekY.toFixed(1)}px, 0) rotateX(${tilt.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
+        const op = smoothFade.toFixed(3);
+        const pe = smoothFade < 0.05 ? 'none' : '';
+
+        write(`tf-${i}`, tf, (v) => { card.style.transform = v; });
+        write(`op-${i}`, op, (v) => { card.style.opacity = v; });
+        write(`pe-${i}`, pe, (v) => { card.style.pointerEvents = v; });
+        if (shade) write(`dm-${i}`, dim.toFixed(3), (v) => { shade.style.opacity = v; });
+      });
+    };
+
+    const schedule = () => {
+      if (!rafId) rafId = window.requestAnimationFrame(updateStack);
+    };
+
+    const depthsAtFocus = (targetIdx: number): number => {
+      const viewHeight = dialog.clientHeight || window.innerHeight;
+      const viewTop = dialog.getBoundingClientRect().top + dialog.clientTop;
+      const stackTop = Math.round(clamp(window.innerWidth <= 720 ? 86 : 108, viewHeight * 0.135, 138));
+      const pinY = viewTop + stackTop;
+      let d = 0;
+      for (let j = targetIdx + 1; j < slots.length; j++) {
+        const prevH = slots[j - 1].offsetHeight;
+        const cover = clamp01((pinY + prevH * 0.95 - slots[j].getBoundingClientRect().top) / Math.max(1, prevH * 0.9));
+        d += cover;
+      }
+      return d;
+    };
+
+    // Keyboard accessibility: if a user tabs into an earlier buried slot, scroll it cleanly to depth 0
+    const focusHandlers: Array<() => void> = [];
+    slots.forEach((slot, idx) => {
+      const onFocusIn = () => {
+        if (motionMq.matches || depthsAtFocus(idx) < 0.5) return;
+        const innerTopInDialog =
+          stackInner.getBoundingClientRect().top -
+          (dialog.getBoundingClientRect().top + dialog.clientTop) +
+          dialog.scrollTop;
+        let offsetBefore = 0;
+        for (let k = 0; k < idx; k++) {
+          const spacerEl = slots[k].nextElementSibling as HTMLElement | null;
+          const spacerH = spacerEl?.classList.contains('h51-stack-spacer') ? spacerEl.offsetHeight : 0;
+          offsetBefore += slots[k].offsetHeight + spacerH;
+        }
+        const viewHeight = dialog.clientHeight || window.innerHeight;
+        const stackTop = Math.round(clamp(window.innerWidth <= 720 ? 86 : 108, viewHeight * 0.135, 138));
+        dialog.scrollTo({ top: Math.max(0, innerTopInDialog + offsetBefore - stackTop), behavior: 'smooth' });
+      };
+      slot.addEventListener('focusin', onFocusIn);
+      focusHandlers.push(() => slot.removeEventListener('focusin', onFocusIn));
+    });
+
+    const ro = new ResizeObserver(schedule);
+    ro.observe(dialog);
+    ro.observe(stackInner);
+    dialog.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    motionMq.addEventListener('change', schedule);
+    updateStack();
+
+    stackCleanup = () => {
+      window.cancelAnimationFrame(rafId);
+      ro.disconnect();
+      dialog.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      motionMq.removeEventListener('change', schedule);
+      focusHandlers.forEach((fn) => fn());
+    };
+  };
+
   const renderProject = (idx: number) => {
     const count = PORTFOLIO_PROJECTS.length;
     currentProjectIdx = ((idx % count) + count) % count;
@@ -492,6 +694,7 @@ export function initLinusGalleryModal(
     curTiltX = 0;
     curTiltY = 0;
     bindWallInteractions();
+    bindScrollStack();
     contentHost.querySelectorAll<HTMLElement>('.h51-kpi-card strong').forEach((el, kIdx) => {
       streakRevealElement(el, { axis: 'x', delayMs: 80 + kIdx * 55, durationMs: 420 });
     });
@@ -508,6 +711,8 @@ export function initLinusGalleryModal(
   const close = () => {
     closeZoom();
     window.cancelAnimationFrame(tiltRaf);
+    stackCleanup?.();
+    stackCleanup = null;
     dialog.returnValue = '';
     void closeTopLayer(dialog);
   };
@@ -535,6 +740,8 @@ export function initLinusGalleryModal(
 
   dialog.addEventListener('close', () => {
     window.cancelAnimationFrame(tiltRaf);
+    stackCleanup?.();
+    stackCleanup = null;
     dialog.returnValue = '';
   });
 

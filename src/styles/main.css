@@ -4134,99 +4134,243 @@ dialog::backdrop {
   color: #52535a;
 }
 
-/* Annotated Plates Grid */
-.h51-plates-grid {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.h51-plates-grid.is-poster-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.h51-plate-card {
-  background: #ffffff;
-  border: 1px solid rgba(11, 12, 15, 0.1);
-  border-radius: 20px;
-  overflow: hidden;
+/* ============================================================
+   SCROLL STACK EXHIBITION PLATES (Section 04 inside .h51-dialog)
+   Cards pin, stack with upward peeking headers, dim, and fade away
+   ============================================================ */
+.h51-exhibition-head {
   display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 28px rgba(11, 12, 15, 0.04);
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.h51-plate-media {
+.h51-stack-counter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(11, 12, 15, 0.12);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: #5c5d65;
+}
+
+.h51-stack-counter-pill strong {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0b0c0f;
+  font-variant-numeric: tabular-nums;
+}
+
+.h51-scroll-stack {
+  --stack-top: 116px;
   position: relative;
+  inline-size: 100%;
+  margin-block-start: 36px;
+}
+
+.h51-scroll-stack__inner {
+  position: relative;
+  inline-size: min(1040px, 100%);
+  margin-inline: auto;
+  padding-block-start: 56px;
+}
+
+.h51-stack-slot {
+  position: sticky;
+  top: var(--stack-top);
+}
+
+.h51-stack-spacer {
+  block-size: clamp(110px, 16dvh, 155px);
+}
+
+.h51-stack-end {
+  block-size: clamp(72px, 11dvh, 120px);
+}
+
+.h51-stack-card {
+  position: relative;
+  box-sizing: border-box;
+  inline-size: 100%;
+  border-radius: 24px;
+  background: #ffffff;
+  color: #0b0c0f;
+  border: 1px solid rgba(11, 12, 15, 0.11);
+  box-shadow:
+    0 -14px 38px -18px rgba(9, 11, 16, 0.18),
+    0 28px 60px -24px rgba(9, 11, 16, 0.24);
+  overflow: clip;
+  transform-origin: 50% 0%;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+.h51-stack-card__shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #080a10;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  will-change: opacity;
+}
+
+/* Top Plate Header Strip — remains visible when peeking behind newer stacked cards */
+.h51-stack-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-block-size: 52px;
+  padding: 10px 22px;
+  background: #faf9f6;
+  border-block-end: 1px solid rgba(11, 12, 15, 0.09);
+}
+
+.h51-stack-bar-left,
+.h51-stack-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-inline-size: 0;
+}
+
+.h51-stack-plate-pill {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(27, 127, 194, 0.11);
+  color: #156ec4;
+}
+
+.h51-stack-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0b0c0f;
+  white-space: nowrap;
+  overflow: clip;
+  text-overflow: ellipsis;
+}
+
+.h51-stack-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #666770;
+}
+
+.h51-stack-fraction {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: #0b0c0f;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Uniform Media Viewport so all cards share identical stack height without cropping UI */
+.h51-stack-media {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: clamp(270px, 48dvh, 470px);
   padding: 0;
   border: 0;
-  background: #090a0e;
-  cursor: pointer;
-  overflow: hidden;
-  display: block;
-  width: 100%;
+  background: #08090d;
+  cursor: zoom-in;
+  overflow: clip;
 }
 
-.h51-plate-media img {
-  width: 100%;
-  height: auto;
+.h51-stack-media img {
   display: block;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.h51-plate-media:hover img {
-  transform: scale(1.03);
+@media (prefers-reduced-motion: no-preference) {
+  .h51-stack-media:hover img {
+    transform: scale(1.02);
+  }
 }
 
 .h51-plate-zoom-chip {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 6px 12px;
+  inset-inline-end: 14px;
+  inset-block-end: 14px;
+  padding: 7px 13px;
   border-radius: 999px;
   background: rgba(11, 12, 15, 0.84);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
   font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
 }
 
-.h51-plate-meta {
-  padding: 20px 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.h51-plate-meta-top {
+.h51-stack-foot {
+  min-block-size: 64px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
+  padding: 14px 24px 16px;
+  background: #ffffff;
+  border-block-start: 1px solid rgba(11, 12, 15, 0.07);
 }
 
-.h51-plate-idx {
-  font-weight: 700;
-  color: #1b7fc2;
-}
-
-.h51-plate-tag {
-  color: #6b6c74;
-}
-
-.h51-plate-meta h3 {
-  margin: 2px 0 0;
-  font-size: 1.12rem;
-  font-weight: 800;
-}
-
-.h51-plate-meta p {
+.h51-stack-foot p {
   margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: #52535b;
+  font-size: 0.9rem;
+  line-height: 1.52;
+  color: #4b4c54;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: clip;
+}
+
+/* Reduced Motion Safety: unstack cards into a clean static exhibition flow */
+@media (prefers-reduced-motion: reduce) {
+  .h51-scroll-stack__inner {
+    padding-block-start: 0;
+  }
+
+  .h51-stack-slot {
+    position: relative;
+    top: auto;
+  }
+
+  .h51-stack-spacer {
+    block-size: 28px;
+  }
+
+  .h51-stack-end {
+    block-size: 0;
+  }
+
+  .h51-stack-card {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+  }
 }
 
 /* Bottom Studio Launch Banner */
@@ -4404,8 +4548,20 @@ dialog::backdrop {
     transform: rotate(90deg);
   }
 
-  .h51-plates-grid.is-poster-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .h51-stack-bar {
+    padding: 10px 14px;
+  }
+
+  .h51-stack-tag {
+    display: none;
+  }
+
+  .h51-stack-media {
+    block-size: clamp(220px, 38dvh, 320px);
+  }
+
+  .h51-stack-foot {
+    padding: 12px 16px 14px;
   }
 }
 
