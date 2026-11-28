@@ -547,7 +547,7 @@ function bootstrap() {
             mountContactMascot3D(
               contactLogoHost,
               contactSection,
-              './tripo_convert_6be48bd9-7c4d-42a8-869b-6b1c537a2a97.glb'
+              './tripo_convert_d4ce10d2-55d9-4093-944b-7692ec975245.glb'
             );
           });
         }

@@ -538,7 +538,7 @@ export function renderServicesHTML(): string {
                               </div>
 
                               <div class="sc-poster-foot">
-                                <span>CLICK TO INSPECT</span>
+                                <span>WE BUILD, YOU LEAD</span>
                                 <span aria-hidden="true">&#8599;</span>
                               </div>
                             </div>

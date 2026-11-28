@@ -209,10 +209,10 @@ export const SITE_CONFIG: SiteConfig = {
   brand: {
     name: 'DEPLOY',
     wordmark: 'deploy',
-    locationEyebrow: 'SOFTWARE ENGINEERING STUDIO',
+    locationEyebrow: 'WE BUILD, YOU LEAD',
     email: 'deployegg@gmail.com',
     tagline:
-      'Websites, SaaS platforms, internal company systems and custom software — engineered to ship.',
+      'We build, you lead. — Websites, SaaS platforms, internal company systems and custom software.',
     legalNotice: '© 2026 DEPLOY Software Engineering. All rights reserved.',
     isReferenceStudy: false,
   },
@@ -285,11 +285,11 @@ export const SITE_CONFIG: SiteConfig = {
     auditCta: 'Start a project',
   },
   hero: {
-    eyebrow: 'SOFTWARE ENGINEERING STUDIO',
+    eyebrow: 'WE BUILD, YOU LEAD · SOFTWARE STUDIO',
     headlineLine1: 'DEPLOY',
     headlineLine2: '',
     readingLabel: 'BUILDING',
-    description: 'Websites. SaaS. Company systems.',
+    description: 'We build, you lead. — Websites, SaaS & company systems.',
     primaryCta: 'Start a project',
     secondaryCta: 'How we build',
     definition: {
@@ -299,7 +299,7 @@ export const SITE_CONFIG: SiteConfig = {
       entries: [
         'Ship software to live production.',
         'Automate how your company runs.',
-        'Own 100% of your stack.',
+        'We build, you lead.',
       ],
     },
     queries: [
@@ -399,7 +399,7 @@ export const SITE_CONFIG: SiteConfig = {
     diagnosticsAfter: ['0.4S LOAD', 'UNIFIED API', 'AUTOMATED'],
     zerothMorph: {
       tag: '09 · DEPLOY',
-      title: 'Built to ship.',
+      title: 'We build, you lead.',
       subtitle: 'Websites · SaaS · Systems',
     },
   },
@@ -598,22 +598,23 @@ export const SITE_CONFIG: SiteConfig = {
       'CLOUD INFRA',
     ],
     queries: [
-      { text: 'custom saas', badge: 'SHIPPED', accent: 'yellow' },
+      { text: 'we build, you lead', badge: 'DEPLOY', accent: 'yellow' },
+      { text: 'custom saas', badge: 'SHIPPED', accent: 'black' },
       { text: 'company erp', badge: 'LIVE', accent: 'black' },
-      { text: '3d websites', badge: '99/100', accent: 'black' },
-      { text: 'ai copilot', badge: 'SHIPPED', accent: 'yellow' },
+      { text: '3d websites', badge: '99/100', accent: 'yellow' },
+      { text: 'ai copilot', badge: 'SHIPPED', accent: 'black' },
       { text: 'pos systems', badge: 'LIVE', accent: 'black' },
     ],
-    disclaimer: 'WEBSITES · SAAS · SYSTEMS',
+    disclaimer: 'WE BUILD, YOU LEAD · WEBSITES · SAAS · SYSTEMS',
   },
   contact: {
-    eyebrow: 'START A BUILD',
+    eyebrow: 'WE BUILD, YOU LEAD',
     mutedHeadline: 'Ready to build?',
     boldHeadline: "Let's deploy.",
     body: 'Websites, SaaS, or internal systems — scoped in 30 minutes.',
     primaryCta: 'Start your project',
     emailPrefix: 'or',
-    caption: '100% code ownership.',
+    caption: 'We build, you lead. · 100% code ownership.',
     mapEyebrow: 'SELECT A DEPLOYMENT REGION',
     mapHint: 'CLICK ANYWHERE ON THE MAP · DRAG TO TILT',
     cities: [
@@ -659,7 +660,7 @@ export const SITE_CONFIG: SiteConfig = {
       { label: 'Work', href: '#results' },
       { label: 'Contact', href: '#contact' },
     ],
-    officeLines: ['Software Engineering', 'Building worldwide'],
+    officeLines: ['We Build, You Lead.', 'Software Engineering', 'Building worldwide'],
     footnotes: [],
     copyright: '© 2026 DEPLOY Software Engineering. All rights reserved.',
     legalLinks: [

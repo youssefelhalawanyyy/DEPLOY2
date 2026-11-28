@@ -3203,10 +3203,10 @@ button {
   position: relative;
   width: 100%;
   height: 460px;
-  border-radius: 22px;
-  background: radial-gradient(circle at 50% 62%, rgba(6, 182, 212, 0.16), rgba(9, 9, 11, 0.96) 58%, #09090b 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
   display: grid;
   place-items: center;
 }
@@ -3216,7 +3216,7 @@ button {
   height: 100%;
   display: block;
   cursor: grab;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .contact-logo-3d-canvas:active {
