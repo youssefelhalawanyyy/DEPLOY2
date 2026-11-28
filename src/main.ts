@@ -355,9 +355,11 @@ function buildAppHTML(): string {
           </div>
         </div>
 
-        <div class="footer-footnotes">
-          ${cfg.footer.footnotes.map((fn) => `<p>${fn}</p>`).join('')}
-        </div>
+        ${
+          cfg.footer.footnotes.length
+            ? `<div class="footer-footnotes">${cfg.footer.footnotes.map((fn) => `<p>${fn}</p>`).join('')}</div>`
+            : ''
+        }
 
         <div class="footer-bottom-bar">
           <p class="footer-copy">${cfg.footer.copyright}</p>

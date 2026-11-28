@@ -660,9 +660,7 @@ export const SITE_CONFIG: SiteConfig = {
       { label: 'Contact', href: '#contact' },
     ],
     officeLines: ['Software Engineering', 'Building worldwide'],
-    footnotes: [
-      'DEPLOY engineers custom websites, SaaS platforms, internal company systems, APIs, and AI workflow tools — 100% code ownership.',
-    ],
+    footnotes: [],
     copyright: '© 2026 DEPLOY Software Engineering. All rights reserved.',
     legalLinks: [
       { id: 'impressum', label: 'Legal Notice' },
